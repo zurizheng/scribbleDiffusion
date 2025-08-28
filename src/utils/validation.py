@@ -73,6 +73,8 @@ def validate_model(
             image = generate_image(
                 unet=unet,
                 vae=vae,
+                text_encoder=text_encoder,
+                tokenizer=tokenizer,
                 noise_scheduler=noise_scheduler,
                 text_embeddings=text_embeddings,
                 hint_features=hint_features,
@@ -105,6 +107,8 @@ def validate_model(
 def generate_image(
     unet,
     vae,
+    text_encoder,
+    tokenizer,
     noise_scheduler,
     text_embeddings: torch.Tensor,
     hint_features: Dict[str, torch.Tensor],
@@ -116,7 +120,7 @@ def generate_image(
     
     # Initialize random latents
     latents = torch.randn(
-        (1, 4, 32, 32),  # VAE latent size for 256x256 image
+        (1, 4, 64, 64),  # VAE latent size for 512x512 image
         device=device,
         dtype=torch.float32,
     )
