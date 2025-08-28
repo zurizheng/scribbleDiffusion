@@ -7,6 +7,9 @@ echo "======================================"
 # Ensure we're in the project root
 cd /workspace/scribbleDiffusion
 
+# Set Python path FIRST before any Python operations
+export PYTHONPATH="/workspace/scribbleDiffusion:$PYTHONPATH"
+
 # Activate virtual environment
 source .venv/bin/activate
 
@@ -15,14 +18,17 @@ echo "📍 Environment check:"
 echo "   Working dir: $(pwd)"
 echo "   Python: $(which python)"
 echo "   Virtual env: $VIRTUAL_ENV"
-
-# Add current directory to Python path
-export PYTHONPATH="/workspace/scribbleDiffusion:$PYTHONPATH"
 echo "   Python path: $PYTHONPATH"
 
 echo ""
 echo "🔍 Quick import test..."
 python -c "
+import sys
+print('Python sys.path:')
+for p in sys.path[:3]:
+    print(f'  {p}')
+print('  ...')
+
 try:
     from src.models.unet import SketchConditionedUNet
     from src.models.hint_encoder import HintEncoder
