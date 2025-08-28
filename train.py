@@ -217,9 +217,9 @@ def main():
             "batch_size": int(config.training.batch_size),
             "max_train_steps": int(config.training.max_train_steps),
             "gradient_accumulation_steps": int(config.training.gradient_accumulation_steps),
-            "resolution": int(config.data.resolution),
-            "dataset_name": str(config.data.dataset_name),
-            "unet_channels": str(config.model.unet.in_channels),
+            "image_size": int(config.data.image_size),
+            "dataset_type": str(config.data.dataset_type),
+            "unet_channels": int(config.model.unet.model_channels),
             "mixed_precision": str(config.training.mixed_precision),
         }
         
