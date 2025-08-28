@@ -212,8 +212,8 @@ class SketchConditionedUNet(nn.Module):
         h = self.conv_in(sample)
         
         # Add hint features if provided (ControlNet-lite injection)
-        if hint_features is not None and "32" in hint_features:
-            h = h + hint_features["32"]
+        if hint_features is not None and "64" in hint_features:
+            h = h + hint_features["64"]
         
         # Encoder
         down_block_res_samples = [h]
