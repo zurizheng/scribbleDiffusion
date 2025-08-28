@@ -79,19 +79,34 @@ import numpy
 print(f'NumPy version: {numpy.__version__}')
 
 try:
+    import huggingface_hub
+    print(f'HuggingFace Hub version: {huggingface_hub.__version__}')
+    
     import diffusers
     print(f'Diffusers version: {diffusers.__version__}')
     from diffusers import AutoencoderKL
-    print('✅ Diffusers working correctly with stable versions')
+    print('✅ Diffusers working correctly with compatible versions!')
+    
+    # Test that we can actually use it
+    print('🧪 Testing AutoencoderKL instantiation...')
+    vae = AutoencoderKL(
+        in_channels=3,
+        out_channels=3,
+        down_block_types=['DownEncoderBlock2D', 'DownEncoderBlock2D'],
+        up_block_types=['UpDecoderBlock2D', 'UpDecoderBlock2D'],
+        block_out_channels=[64, 128],
+        latent_channels=4
+    )
+    print('✅ AutoencoderKL created successfully!')
+    
 except ImportError as e:
-    print(f'❌ Diffusers import failed: {e}')
-    print('Checking if diffusers is installed...')
+    print(f'❌ Import failed: {e}')
+    print('Checking installed versions...')
     import subprocess
     result = subprocess.run(['python', '-m', 'pip', 'list'], capture_output=True, text=True)
-    if 'diffusers' in result.stdout:
-        print('Diffusers is installed but not importable')
-    else:
-        print('Diffusers is not installed')
+    for line in result.stdout.split('\n'):
+        if 'diffusers' in line or 'huggingface' in line:
+            print(f'   {line}')
 "
 
 # Install other ML dependencies with compatible versions
@@ -104,9 +119,14 @@ python -m pip install transformers==4.30.2 || echo "❌ Transformers installatio
 
 echo "Ensuring diffusers is correct version..."
 python -m pip uninstall diffusers -y 2>/dev/null || true
+python -m pip uninstall huggingface-hub -y 2>/dev/null || true
+
+# Install compatible huggingface_hub version first
+python -m pip install huggingface_hub==0.16.4  # Compatible with diffusers 0.18.2
 python -m pip install diffusers==0.18.2 --no-deps || echo "❌ Diffusers installation failed"
-# Install diffusers dependencies separately
-python -m pip install huggingface-hub regex requests Pillow safetensors
+
+# Install other diffusers dependencies separately with compatible versions
+python -m pip install regex requests Pillow safetensors==0.3.1
 
 echo "Installing datasets..."
 python -m pip install datasets==2.13.1 || echo "❌ Datasets installation failed"
