@@ -218,13 +218,6 @@ class SketchConditionedUNet(nn.Module):
         # Encoder
         down_block_res_samples = [h]
         for i, encoder_block in enumerate(self.encoder_blocks):
-            # Inject hint features at appropriate resolutions
-            if hint_features is not None:
-                # Get current resolution
-                current_res = h.shape[-1]
-                if str(current_res) in hint_features:
-                    h = h + hint_features[str(current_res)]
-            
             if hasattr(encoder_block, "has_cross_attention") and encoder_block.has_cross_attention:
                 h, res_samples = encoder_block(
                     h, t_emb, encoder_hidden_states=encoder_hidden_states
