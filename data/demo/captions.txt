@@ -1,0 +1,5 @@
+a red circle
+a blue square
+a green triangle
+a yellow rectangle
+a purple oval

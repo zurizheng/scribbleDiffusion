@@ -38,7 +38,7 @@ from src.utils.validation import validate_model
 from src.utils.logging import setup_logging
 
 # Check minimum diffusers version
-check_min_version("0.21.0")
+check_min_version("0.18.0")
 
 logger = get_logger(__name__)
 
