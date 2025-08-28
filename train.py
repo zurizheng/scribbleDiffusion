@@ -340,9 +340,14 @@ def main():
             # Validation
             if global_step % config.validation.validation_steps == 0:
                 logger.info("Running validation...")
+                
+                # Get the actual models for validation
+                val_unet = unet  # Use original unet, not EMA for now
+                val_hint_encoder = hint_encoder  # Use original hint_encoder, not EMA for now
+                
                 validation_logs = validate_model(
-                    unet=ema_unet.averaged_model if config.training.use_ema else unet,
-                    hint_encoder=ema_hint_encoder.averaged_model if config.training.use_ema else hint_encoder,
+                    unet=val_unet,
+                    hint_encoder=val_hint_encoder,
                     vae=vae,
                     text_encoder=text_encoder,
                     tokenizer=tokenizer,
