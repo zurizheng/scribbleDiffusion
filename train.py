@@ -6,9 +6,15 @@ import argparse
 import logging
 import os
 import random
+import sys
 import time
 from pathlib import Path
 from typing import Dict, Any
+
+# Add the project root to Python path for imports
+project_root = Path(__file__).parent.resolve()
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 import torch
 import torch.nn.functional as F
