@@ -27,9 +27,14 @@ fi
 source .venv/bin/activate
 echo "Virtual environment activated"
 
-# Upgrade pip
-echo "⬆️ Upgrading pip..."
-pip install --upgrade pip --root-user-action=ignore
+# Verify we're using the right pip and python
+echo "📍 Using python: $(which python)"
+echo "📍 Using pip: $(which pip)"
+echo "📍 Virtual env: $VIRTUAL_ENV"
+
+# Upgrade pip in the virtual environment
+echo "⬆️ Upgrading pip in virtual environment..."
+python -m pip install --upgrade pip
 
 # Install PyTorch with CUDA support for RTX 3090
 echo "🔥 Installing PyTorch with CUDA 11.7 support (detected CUDA 11.7.1)..."
@@ -37,17 +42,17 @@ echo "📍 Using pip: $(which pip)"
 echo "📍 Using python: $(which python)"
 echo "📍 Virtual env: $VIRTUAL_ENV"
 
-# Try installing with verbose output
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117 --root-user-action=ignore --verbose
+# Use python -m pip to ensure we use the venv pip
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
 
 # Check if PyTorch installed successfully
 echo "🔍 Checking PyTorch installation..."
-python -c "import sys; print('Python path:', sys.path)" 
+python -c "import sys; print('Python path:', sys.path[:3], '...')" 
 python -c "import torch; print('✅ PyTorch imported successfully')" || {
     echo "❌ PyTorch installation failed. Checking what packages are installed..."
-    pip list | grep -i torch || echo "No torch packages found"
+    python -m pip list | grep -i torch || echo "No torch packages found"
     echo "Trying CPU-only version as fallback..."
-    pip install torch torchvision torchaudio --root-user-action=ignore --verbose
+    python -m pip install torch torchvision torchaudio
 }
 
 # Verify PyTorch CUDA installation immediately after install
@@ -68,15 +73,15 @@ else:
 
 # Install other ML dependencies
 echo "📦 Installing ML libraries..."
-pip install accelerate transformers diffusers datasets --root-user-action=ignore
+python -m pip install accelerate transformers diffusers datasets
 
 # Install additional dependencies
 echo "📦 Installing additional dependencies..."
-pip install -r requirements.txt --root-user-action=ignore
+python -m pip install -r requirements.txt
 
 # Install development tools
 echo "🛠️ Installing development tools..."
-pip install tensorboard wandb opencv-python pillow numpy scipy matplotlib --root-user-action=ignore
+python -m pip install tensorboard wandb opencv-python pillow numpy scipy matplotlib
 
 # Test diffusers installation
 echo "🧪 Testing diffusers installation..."
