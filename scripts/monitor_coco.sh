@@ -2,7 +2,10 @@
 # Quick script to monitor COCO download/extraction progress
 # Run this in a separate terminal while download_coco.sh is running
 
-COCO_DIR="data/coco"
+# Get the project root directory (one level up from scripts)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+COCO_DIR="$PROJECT_ROOT/data/coco"
 
 echo "🔍 COCO Dataset Progress Monitor"
 echo "=" * 40
@@ -11,6 +14,8 @@ while true; do
     clear
     echo "🔍 COCO Dataset Progress Monitor - $(date)"
     echo "=" * 50
+    echo "📁 Monitoring: $COCO_DIR"
+    echo ""
     
     if [ -d "$COCO_DIR" ]; then
         cd "$COCO_DIR"
