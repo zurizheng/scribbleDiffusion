@@ -37,13 +37,13 @@ echo "⬆️ Upgrading pip in virtual environment..."
 python -m pip install --upgrade pip
 
 # Install PyTorch with CUDA support for RTX 3090
-echo "🔥 Installing PyTorch with CUDA 11.7 support (detected CUDA 11.7.1)..."
+echo "🔥 Installing PyTorch 2.1+ with CUDA 11.7 support (detected CUDA 11.7.1)..."
 echo "📍 Using pip: $(which pip)"
 echo "📍 Using python: $(which python)"
 echo "📍 Virtual env: $VIRTUAL_ENV"
 
-# Use python -m pip to ensure we use the venv pip
-python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117
+# Install newer PyTorch compatible with diffusers
+python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
 
 # Check if PyTorch installed successfully
 echo "🔍 Checking PyTorch installation..."
@@ -52,7 +52,7 @@ python -c "import torch; print('✅ PyTorch imported successfully')" || {
     echo "❌ PyTorch installation failed. Checking what packages are installed..."
     python -m pip list | grep -i torch || echo "No torch packages found"
     echo "Trying CPU-only version as fallback..."
-    python -m pip install torch torchvision torchaudio
+    python -m pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2
 }
 
 # Verify PyTorch CUDA installation immediately after install
@@ -62,7 +62,7 @@ import torch
 print(f'PyTorch version: {torch.__version__}')
 print(f'CUDA available: {torch.cuda.is_available()}')
 print(f'CUDA version: {torch.version.cuda}')
-print(f'Expected CUDA: 11.7 (Container has CUDA 11.7.1)')
+print(f'Expected CUDA: 11.8 (Compatible with CUDA 11.7.1)')
 print(f'GPU count: {torch.cuda.device_count()}')
 if torch.cuda.is_available():
     print(f'GPU name: {torch.cuda.get_device_name(0)}')
@@ -71,9 +71,20 @@ else:
     print('⚠️  CUDA not available - check CUDA compatibility')
 "
 
-# Install other ML dependencies
-echo "📦 Installing ML libraries..."
-python -m pip install accelerate transformers diffusers datasets
+# Test diffusers installation with compatible versions
+echo "🧪 Testing diffusers installation..."
+python -c "
+import diffusers
+print(f'Diffusers version: {diffusers.__version__}')
+from diffusers import AutoencoderKL
+print('✅ Diffusers working correctly with compatible PyTorch version')
+"
+
+# Install other ML dependencies with compatible versions
+echo "📦 Installing ML libraries with compatible versions..."
+python -m pip install accelerate transformers
+python -m pip install diffusers==0.25.1  # Compatible with PyTorch 2.1
+python -m pip install datasets
 
 # Install additional dependencies
 echo "📦 Installing additional dependencies..."
