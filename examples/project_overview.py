@@ -1,0 +1,215 @@
+"""
+ScribbleDiffusion Project Overview and Example Usage.
+This file demonstrates the project structure and intended API.
+"""
+
+def project_overview():
+    """Describe the ScribbleDiffusion project."""
+    print("🎨 ScribbleDiffusion: Sketch + Text → Beautiful Images")
+    print("=" * 60)
+    print()
+    print("OVERVIEW:")
+    print("A lightweight latent diffusion model that combines sketches and text")
+    print("to generate high-quality 256×256 images with live attention visualization.")
+    print()
+    print("KEY FEATURES:")
+    print("✨ Dual conditioning: Sketch structure + text semantics")
+    print("🧠 Live attention maps: See which words affect which regions") 
+    print("⚡ Lightweight: <100M parameters, efficient training")
+    print("🎛️  Controllable: Separate guidance scales for sketch vs text")
+    print("📹 Timeline viz: Watch the denoising process step-by-step")
+    print()
+
+
+def architecture_overview():
+    """Describe the model architecture."""
+    print("ARCHITECTURE:")
+    print("=" * 40)
+    print()
+    print("Input Pipeline:")
+    print("  Sketch (256×256) → Edge Detection → Hint Encoder → Multi-res Features")
+    print("  Text Prompt → CLIP Text Encoder → Token Embeddings")
+    print()
+    print("Core Model:")
+    print("  Image → VAE Encoder → Latents (32×32×4)")
+    print("  U-Net with Cross-Attention + Hint Feature Injection")
+    print("  Latents → VAE Decoder → Generated Image (256×256)")
+    print()
+    print("Components:")
+    print("  🔸 U-Net: ~50-100M params with cross-attention for text")
+    print("  🔸 Hint Encoder: ~5-10M params (ControlNet-lite)")
+    print("  🔸 VAE & Text Encoder: Pretrained, frozen")
+    print()
+
+
+def training_overview():
+    """Describe the training process."""
+    print("TRAINING:")
+    print("=" * 40)
+    print()
+    print("Data:")
+    print("  🔸 Base: COCO subset or custom dataset (~50k-150k images)")
+    print("  🔸 Sketches: Auto-generated via Canny/HED edge detection")
+    print("  🔸 Augmentation: Edge jitter, gaps, thickness variation")
+    print()
+    print("Loss & Optimization:")
+    print("  🔸 Objective: ε-prediction with MSE loss")
+    print("  🔸 Schedule: Cosine β schedule, T=1000 timesteps")
+    print("  🔸 CFG: Text drop (10%) + sketch drop (10%)")
+    print("  🔸 Optimizer: AdamW with cosine LR schedule")
+    print()
+    print("Techniques:")
+    print("  🔸 Mixed precision (FP16)")
+    print("  🔸 Gradient checkpointing")
+    print("  🔸 EMA model weights")
+    print("  🔸 Dual classifier-free guidance")
+    print()
+
+
+def inference_overview():
+    """Describe the inference process."""
+    print("INFERENCE:")
+    print("=" * 40)
+    print()
+    print("Inputs:")
+    print("  🔸 Sketch: Hand-drawn or edge-detected image")
+    print("  🔸 Text: Natural language description")
+    print("  🔸 Controls: CFG scales, steps, seed")
+    print()
+    print("Dual Guidance Formula:")
+    print("  ε̂ = ε̂_uncond + s_text*(ε̂_text - ε̂_uncond) + s_sketch*(ε̂_sketch - ε̂_uncond)")
+    print()
+    print("Outputs:")
+    print("  🔸 Generated image (256×256)")
+    print("  🔸 Attention maps (word → region)")
+    print("  🔸 Denoising timeline (noise → image)")
+    print()
+
+
+def usage_examples():
+    """Show example usage patterns."""
+    print("USAGE EXAMPLES:")
+    print("=" * 40)
+    print()
+    print("1. Basic Generation:")
+    print('   result = pipeline("a red house", sketch, text_cfg=7.5, sketch_cfg=1.5)')
+    print()
+    print("2. Style Control:")
+    print('   # More creative (high text CFG)')
+    print('   result = pipeline("futuristic house", sketch, text_cfg=12.0, sketch_cfg=1.0)')
+    print()
+    print('   # More faithful to sketch (high sketch CFG)')
+    print('   result = pipeline("house", sketch, text_cfg=5.0, sketch_cfg=3.0)')
+    print()
+    print("3. Attention Visualization:")
+    print('   result = pipeline("red house blue door", sketch, return_attention=True)')
+    print('   visualizer.show_attention(result.attention_maps, ["red", "house", "blue", "door"])')
+    print()
+    print("4. Timeline Visualization:")
+    print('   result = pipeline("house", sketch, return_timeline=True)')
+    print('   visualizer.show_timeline(result.timeline_images)')
+    print()
+
+
+def project_structure():
+    """Show the project structure."""
+    print("PROJECT STRUCTURE:")
+    print("=" * 40)
+    print()
+    print("scribbleDiffusion/")
+    print("├── src/")
+    print("│   ├── models/          # U-Net + Hint Encoder")
+    print("│   ├── data/            # Dataset & preprocessing") 
+    print("│   ├── training/        # Training loops & losses")
+    print("│   ├── inference/       # Generation pipeline")
+    print("│   └── utils/           # Visualization & evaluation")
+    print("├── configs/             # Training configurations")
+    print("├── scripts/             # Setup & utility scripts")
+    print("├── notebooks/           # Jupyter experiments")
+    print("├── examples/            # Usage examples")
+    print("├── tests/               # Unit tests")
+    print("├── app.py              # Gradio demo app")
+    print("├── train.py            # Main training script")
+    print("└── README.md           # Documentation")
+    print()
+
+
+def research_contributions():
+    """Describe the research contributions."""
+    print("RESEARCH CONTRIBUTIONS:")
+    print("=" * 40)
+    print()
+    print("1. Lightweight Sketch Conditioning:")
+    print("   🔸 ControlNet-lite: 10x smaller than full ControlNet")
+    print("   🔸 Multi-resolution injection at 32, 16, 8, 4 scales")
+    print("   🔸 Zero-initialized for stable training")
+    print()
+    print("2. Dual Guidance Mechanism:")
+    print("   🔸 Independent control of text vs sketch influence")
+    print("   🔸 Novel guidance formula with two CFG scales")
+    print("   🔸 Enables creative vs faithful generation modes")
+    print()
+    print("3. Live Attention Visualization:")
+    print("   🔸 Real-time word-to-region attention maps")
+    print("   🔸 Token importance tracking across timesteps")
+    print("   🔸 Interactive exploration of generation process")
+    print()
+    print("4. Comprehensive Evaluation:")
+    print("   🔸 Edge fidelity metrics (sketch adherence)")
+    print("   🔸 CLIP scores (text alignment)")
+    print("   🔸 Perceptual quality assessment")
+    print("   🔸 Ablation studies on injection methods")
+    print()
+
+
+def getting_started():
+    """Show how to get started."""
+    print("GETTING STARTED:")
+    print("=" * 40)
+    print()
+    print("1. Setup Environment:")
+    print("   git clone <repo>")
+    print("   cd scribbleDiffusion")
+    print("   pip install -r requirements.txt")
+    print("   python scripts/setup_simple.py")
+    print()
+    print("2. Quick Training (Demo):")
+    print("   python train.py --config configs/simple.json")
+    print()
+    print("3. Launch Demo:")
+    print("   python app.py")
+    print()
+    print("4. Explore Notebooks:")
+    print("   jupyter lab notebooks/")
+    print()
+    print("5. Custom Dataset:")
+    print("   # Edit src/data/dataset.py")
+    print("   # Update configs/base.yaml")
+    print("   # Run full training")
+    print()
+
+
+def main():
+    """Main function to run all overviews."""
+    project_overview()
+    print()
+    architecture_overview()
+    print()
+    training_overview() 
+    print()
+    inference_overview()
+    print()
+    usage_examples()
+    print()
+    project_structure()
+    print()
+    research_contributions()
+    print()
+    getting_started()
+    print()
+    print("🎉 ScribbleDiffusion: Where sketches meet AI creativity!")
+    print("    Ready to turn your doodles into masterpieces! 🎨✨")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,209 @@
+# ScribbleDiffusion .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# PyTorch and ML models
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.bin
+*.h5
+*.pkl
+*.pickle
+
+# Training outputs and logs
+outputs/
+logs/
+runs/
+wandb/
+tensorboard_logs/
+checkpoints/
+results/
+experiments/
+validation_outputs/
+
+# Dataset and data files
+data/
+dataset/
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+*.webp
+*.gif
+# Keep example images for documentation
+!examples/*.png
+!examples/*.jpg
+!docs/*.png
+!docs/*.jpg
+!*.png
+!test_*.png
+!sample_*.png
+
+# COCO dataset specifically
+coco/
+train2017/
+val2017/
+test2017/
+annotations/
+*.json
+!configs/*.json
+
+# Cache directories
+cache/
+.cache/
+tmp/
+temp/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+!examples/*.ipynb
+!docs/*.ipynb
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment variables and secrets
+.env*
+secrets.yaml
+api_keys.txt
+*.key
+*.pem
+
+# Hugging Face cache
+.huggingface/
+transformers_cache/
+diffusers_cache/
+
+# System files
+*.log
+*.out
+*.err
+nohup.out
+core.*
+
+# Temporary Python files
+.coverage
+.pytest_cache/
+.tox/
+.nox/
+htmlcov/
+.coverage.*
+
+# Documentation build
+docs/_build/
+docs/build/
+site/
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Compressed files (unless specifically needed)
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Large files that shouldn't be in git
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+
+# Keep important config and documentation files
+!README.md
+!LICENSE
+!requirements.txt
+!setup.py
+!pyproject.toml
+!configs/*.yaml
+!configs/*.yml
+!examples/
+!docs/
+!scripts/
+
+# Keep small test/example images
+!test_sketch.png
+!test_edge_map.png
+!example_*.png
+!sample_*.png
+
+# Ignore generated debug files
+debug_*.py
+temp_*.py
+test_*.py
+!examples/test_*.py
+
+# Ignore model downloads directory
+models/
+pretrained/
+downloaded_models/
+
+# Ignore any API keys or credentials
+credentials.json
+config.json
+!src/config.json
+!configs/config.json

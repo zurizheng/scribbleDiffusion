@@ -1,0 +1,22 @@
+{
+  "model": {
+    "unet": {
+      "model_channels": 96,
+      "channel_mult": [
+        1,
+        2,
+        2,
+        2
+      ]
+    }
+  },
+  "training": {
+    "batch_size": 4,
+    "max_train_steps": 1000,
+    "learning_rate": 0.0001
+  },
+  "data": {
+    "dataset_name": "data/demo",
+    "image_size": 256
+  }
+}

@@ -1,0 +1,115 @@
+# Training configuration for ScribbleDiffusion
+model:
+  # U-Net Architecture
+  unet:
+    in_channels: 4  # VAE latent channels
+    out_channels: 4
+    model_channels: 192  # Base channel count
+    attention_resolutions: [2, 4, 8]  # 32->16->8->4 with attention at 16,8,4
+    num_res_blocks: 2
+    channel_mult: [1, 2, 3, 4]  # 192, 384, 576, 768
+    num_heads: 8
+    use_spatial_transformer: true
+    transformer_depth: 1
+    context_dim: 768  # CLIP text embedding dim
+    use_checkpoint: true  # Gradient checkpointing
+    
+  # Sketch Conditioning (ControlNet-lite)
+  hint_encoder:
+    in_channels: 1  # Binary edge map
+    hint_channels: [16, 32, 64, 128]  # Multi-resolution features
+    injection_layers: [0, 1, 2, 3]  # Inject at all scales
+    injection_method: "add"  # "add" or "film"
+    
+  # Pretrained Components (frozen)
+  vae:
+    model_name: "runwayml/stable-diffusion-v1-5"
+    subfolder: "vae"
+    
+  text_encoder:
+    model_name: "openai/clip-vit-base-patch32"
+    max_length: 77
+
+# Diffusion Settings
+diffusion:
+  num_train_timesteps: 1000
+  beta_schedule: "cosine"  # "linear" or "cosine"
+  prediction_type: "epsilon"  # "epsilon" or "v_prediction"
+  clip_sample: false
+  
+# Training Configuration
+training:
+  batch_size: 8
+  gradient_accumulation_steps: 4  # Effective batch size = 32
+  learning_rate: 1e-4
+  lr_scheduler: "cosine_with_restarts"
+  num_warmup_steps: 1000
+  max_train_steps: 100000
+  
+  # Optimizer
+  optimizer: "adamw"
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1e-8
+  
+  # Mixed Precision & Memory
+  mixed_precision: "fp16"
+  gradient_checkpointing: true
+  use_ema: true
+  ema_decay: 0.9999
+  
+  # Classifier-Free Guidance Training
+  text_drop_prob: 0.1  # Drop text conditioning
+  sketch_drop_prob: 0.1  # Drop sketch conditioning
+  
+  # Loss Configuration
+  loss_type: "mse"
+  snr_gamma: 5.0  # Signal-to-noise ratio weighting
+
+# Data Configuration
+data:
+  dataset_name: "coco"  # or custom dataset path
+  image_size: 256
+  train_split: "train"
+  validation_split: "validation"
+  
+  # Preprocessing
+  random_crop: true
+  random_flip: true
+  normalize: true
+  
+  # Edge Detection
+  edge_method: "canny"  # "canny", "hed", or "sobel"
+  canny_low: 50
+  canny_high: 150
+  edge_dilation: 1
+  edge_erosion: 0
+  
+  # Edge Augmentations (crucial for robustness)
+  edge_jitter: true
+  jitter_prob: 0.3
+  line_thickness_range: [1, 3]
+  gap_prob: 0.1
+  gap_size_range: [1, 5]
+
+# Validation & Logging
+validation:
+  num_validation_images: 16
+  validation_steps: 2000
+  guidance_scale_text: 7.5
+  guidance_scale_sketch: 1.5
+  num_inference_steps: 50
+  
+logging:
+  project_name: "scribble-diffusion"
+  run_name: null  # Auto-generated if null
+  log_with: "wandb"  # "wandb", "tensorboard", or "all"
+  log_interval: 100
+  save_interval: 5000
+  
+# Paths
+paths:
+  output_dir: "./outputs"
+  logging_dir: "./logs"
+  cache_dir: "./cache"

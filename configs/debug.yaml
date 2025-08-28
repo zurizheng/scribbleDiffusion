@@ -1,0 +1,115 @@
+# Debug Configuration - Quick Testing
+# This config is designed for rapid validation on laptops
+
+# Model Configuration (Use same as COCO but smaller steps)
+model:
+  unet:
+    in_channels: 4
+    out_channels: 4
+    model_channels: 192  # Same as full model
+    attention_resolutions: [2, 4, 8]  # Same as full model
+    num_res_blocks: 2  # Same as full model
+    channel_mult: [1, 2, 3, 4]  # Same as full model
+    num_heads: 8  # Same as full model
+    use_spatial_transformer: true
+    transformer_depth: 1
+    context_dim: 768
+    use_checkpoint: true
+    
+  hint_encoder:
+    in_channels: 1
+    hint_channels: [16, 32, 64, 128]  # Same as full model
+    injection_layers: [0, 1, 2, 3]
+    injection_method: "add"
+    
+  # Pretrained Components (frozen)
+  vae:
+    model_name: "runwayml/stable-diffusion-v1-5"
+    subfolder: "vae"
+    
+  text_encoder:
+    model_name: "openai/clip-vit-base-patch32"
+    max_length: 77
+
+# Diffusion Settings (Reduced)
+diffusion:
+  num_train_timesteps: 100  # Much fewer! (was 1000)
+  beta_schedule: "linear"  # Faster than cosine
+  prediction_type: "epsilon"
+  clip_sample: false
+  
+# Training Configuration (Fast & Light)
+training:
+  batch_size: 1  # Very small for 4GB GPU (was 2)
+  gradient_accumulation_steps: 2  # Simulate batch size 2 (was 1)
+  learning_rate: 5e-4  # Higher LR for faster convergence
+  lr_scheduler: "constant"  # No scheduler overhead
+  num_warmup_steps: 5  # Minimal warmup (was 10)
+  max_train_steps: 50  # Only 50 steps! (was 100)
+  
+  # Optimizer
+  optimizer: "adamw"
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1e-8
+  
+  # Memory Optimizations
+  mixed_precision: "fp16"
+  gradient_checkpointing: false  # Disabled for speed
+  use_ema: false  # Disabled for speed (was true)
+  
+  # Classifier-Free Guidance Training
+  text_drop_prob: 0.1
+  sketch_drop_prob: 0.1
+  
+  # Loss Configuration
+  loss_type: "mse"
+  snr_gamma: 5.0
+
+# Debug Dataset (Small subset but correct size)
+data:
+  dataset_type: "coco"
+  coco_root: "./data/coco"
+  image_size: 256  # Keep same as full model! (was 128)
+  train_split: "demo"  # Use demo subset only! (was "train")
+  validation_split: "demo"
+  max_images: 20  # Only 20 images! (was 50000)
+  
+  # Preprocessing (Simplified)
+  random_crop: false  # Disabled for speed
+  random_flip: false  # Disabled for speed
+  normalize: true
+  
+  # Edge Detection (Simplified)
+  edge_method: "canny"
+  canny_low: 50
+  canny_high: 150
+  edge_dilation: 0  # No dilation
+  edge_erosion: 0   # No erosion
+  edge_jitter: false  # No jittering
+  
+  download_coco: true
+  use_captions: true
+
+# Validation (Minimal)
+validation:
+  num_validation_images: 2  # Only 2! (was 16)
+  validation_steps: 20  # Every 20 steps (was 2000)
+  guidance_scale_text: 7.5
+  guidance_scale_sketch: 1.5
+  num_inference_steps: 10  # Much faster! (was 50)
+
+# Logging (Minimal)
+logging:
+  project_name: "scribble-diffusion-debug"
+  run_name: "quick-test"
+  log_with: "tensorboard"  # Lighter than wandb
+  log_interval: 10  # Every 10 steps (was 100)
+  save_interval: 50  # Save every 50 steps (was 5000)
+
+# Paths
+paths:
+  output_dir: "./outputs/debug_training"
+  logging_dir: "./logs/debug"
+  cache_dir: "./cache"

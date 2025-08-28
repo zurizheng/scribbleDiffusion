@@ -1,0 +1,108 @@
+# High-Performance COCO training configuration for RTX 3090 24GB VRAM
+# Optimized for quality and speed with ample memory resources
+
+model:
+  # U-Net Architecture - High-capacity for RTX 3090 24GB VRAM
+  unet:
+    in_channels: 4  # VAE latent channels
+    out_channels: 4
+    model_channels: 320  # Standard SD 1.5 base channels
+    attention_resolutions: [1, 2, 4, 8]  # Enhanced attention at all scales
+    num_res_blocks: 2  # Standard depth for quality
+    channel_mult: [1, 2, 4, 4]  # Standard SD progression: 320, 640, 1280, 1280
+    num_heads: 8  # Full attention heads
+    use_spatial_transformer: true
+    transformer_depth: 2  # Deeper transformers for better text conditioning
+    context_dim: 768  # Standard CLIP
+    use_checkpoint: false  # Disable checkpointing for speed (plenty of VRAM)
+    
+  # Sketch Conditioning (ControlNet-lite) - Enhanced for high-capacity training
+  hint_encoder:
+    in_channels: 1  # Binary edge map
+    hint_channels: [64, 128, 256, 512]  # Proportional to 320 base channels
+    injection_layers: [0, 1, 2, 3]  # Inject at all scales
+    injection_method: "add"  # "add" or "film"
+    
+  # Pretrained Components (frozen)
+  vae:
+    model_name: "runwayml/stable-diffusion-v1-5"
+    subfolder: "vae"
+    
+  text_encoder:
+    model_name: "openai/clip-vit-large-patch14"
+    max_length: 77
+
+# Diffusion Settings
+diffusion:
+  num_train_timesteps: 1000
+  beta_schedule: "linear"
+  prediction_type: "epsilon"
+  clip_sample: false
+  
+# High-Performance Training Configuration
+training:
+  batch_size: 12  # Aggressive batch size for 24GB VRAM
+  gradient_accumulation_steps: 3  # Effective batch size of 36
+  learning_rate: 0.0001
+  lr_scheduler: cosine_with_restarts
+  num_warmup_steps: 1000
+  max_train_steps: 50000  # Faster convergence with larger batches
+  optimizer: adamw
+  weight_decay: 0.01
+  beta1: 0.9
+  beta2: 0.999
+  epsilon: 1.0e-08
+  mixed_precision: fp16  # Still beneficial for speed
+  gradient_checkpointing: false  # Disabled for speed
+  use_ema: true
+  ema_decay: 0.9999
+  text_drop_prob: 0.1
+  sketch_drop_prob: 0.1
+  loss_type: mse
+  snr_gamma: 5.0
+
+# High-Resolution Data Configuration
+data:
+  dataset_type: coco
+  coco_root: ./data/coco
+  image_size: 512  # Higher resolution for RTX 3090
+  train_split: train
+  validation_split: val
+  max_images: 150000  # Use more data with powerful GPU
+  random_crop: true
+  random_flip: true
+  normalize: true
+  edge_method: canny
+  canny_low: 50
+  canny_high: 150
+  edge_dilation: 1
+  edge_erosion: 0
+  edge_jitter: true
+  jitter_prob: 0.3
+  line_thickness_range: [1, 3]
+  gap_prob: 0.1
+  gap_size_range: [1, 5]
+  download_coco: true
+  use_captions: true
+
+# Enhanced Validation
+validation:
+  num_validation_images: 32  # More validation samples
+  validation_steps: 500  # Frequent validation with fast GPU
+  guidance_scale_text: 7.5
+  guidance_scale_sketch: 1.5
+  num_inference_steps: 50
+
+# Advanced Logging
+logging:
+  project_name: scribble-diffusion-rtx3090
+  run_name: high_capacity_training
+  log_with: "tensorboard"  # Can also use "wandb" with better hardware
+  log_interval: 50  # More frequent logging
+  save_interval: 2000  # More frequent checkpoints
+
+# Output Configuration
+paths:
+  output_dir: ./outputs/rtx3090_training
+  logging_dir: ./logs/rtx3090
+  cache_dir: ./cache
