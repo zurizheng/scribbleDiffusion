@@ -60,15 +60,28 @@ fi
 if [ ! -d "train2017" ]; then
     echo "📦 Extracting training images..."
     if command -v unzip &> /dev/null; then
-        unzip -q train2017.zip
+        echo "   Using unzip (this may take 2-3 minutes for ~118k images)..."
+        unzip train2017.zip | while read line; do
+            echo -n "."
+        done
+        echo ""
     else
         echo "Using Python to extract (unzip not available)..."
         python3 -c "
 import zipfile
 import os
+import sys
+
+print('   Extracting ~118,000 training images...')
 with zipfile.ZipFile('train2017.zip', 'r') as zip_ref:
-    zip_ref.extractall('.')
-print('✅ Extraction completed')
+    files = zip_ref.namelist()
+    total = len(files)
+    for i, file in enumerate(files):
+        zip_ref.extract(file, '.')
+        if i % 1000 == 0:  # Progress every 1000 files
+            percent = (i / total) * 100
+            print(f'   Progress: {i:,}/{total:,} files ({percent:.1f}%)', flush=True)
+    print(f'   ✅ Extracted {total:,} files')
 "
     fi
     echo "✅ Training images extracted"
@@ -80,15 +93,28 @@ fi
 if [ ! -d "val2017" ]; then
     echo "📦 Extracting validation images..."
     if command -v unzip &> /dev/null; then
-        unzip -q val2017.zip
+        echo "   Using unzip (this may take 30 seconds for ~5k images)..."
+        unzip val2017.zip | while read line; do
+            echo -n "."
+        done
+        echo ""
     else
         echo "Using Python to extract (unzip not available)..."
         python3 -c "
 import zipfile
 import os
+import sys
+
+print('   Extracting ~5,000 validation images...')
 with zipfile.ZipFile('val2017.zip', 'r') as zip_ref:
-    zip_ref.extractall('.')
-print('✅ Extraction completed')
+    files = zip_ref.namelist()
+    total = len(files)
+    for i, file in enumerate(files):
+        zip_ref.extract(file, '.')
+        if i % 500 == 0:  # Progress every 500 files
+            percent = (i / total) * 100
+            print(f'   Progress: {i:,}/{total:,} files ({percent:.1f}%)', flush=True)
+    print(f'   ✅ Extracted {total:,} files')
 "
     fi
     echo "✅ Validation images extracted"
@@ -100,15 +126,22 @@ fi
 if [ ! -d "annotations" ]; then
     echo "📦 Extracting annotations..."
     if command -v unzip &> /dev/null; then
-        unzip -q annotations_trainval2017.zip
+        echo "   Using unzip (quick - just a few files)..."
+        unzip annotations_trainval2017.zip
     else
         echo "Using Python to extract (unzip not available)..."
         python3 -c "
 import zipfile
 import os
+import sys
+
+print('   Extracting annotation files...')
 with zipfile.ZipFile('annotations_trainval2017.zip', 'r') as zip_ref:
-    zip_ref.extractall('.')
-print('✅ Extraction completed')
+    files = zip_ref.namelist()
+    for file in files:
+        print(f'   Extracting: {file}')
+        zip_ref.extract(file, '.')
+print('   ✅ Annotations extracted')
 "
     fi
     echo "✅ Annotations extracted"
