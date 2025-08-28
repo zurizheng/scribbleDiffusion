@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from diffusers.models.attention_processor import Attention
 from diffusers.models.embeddings import TimestepEmbedding, Timesteps
-from diffusers.models.unets.unet_2d_blocks import (
+from diffusers.models.unet_2d_blocks import (
     UNetMidBlock2D,
     get_down_block,
     get_up_block,
