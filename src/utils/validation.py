@@ -145,43 +145,28 @@ def generate_image(
     
     # Denoising loop
     for i, t in enumerate(timesteps):
-        # Expand latents for CFG
-        latent_model_input = torch.cat([latents] * 3)  # uncond, text, sketch
+        # Expand latents for CFG (unconditional + text conditional)
+        latent_model_input = torch.cat([latents] * 2)  # uncond, text
         latent_model_input = noise_scheduler.scale_model_input(latent_model_input, t)
         
-        # Prepare embeddings and hints for CFG
+        # Prepare embeddings for CFG
         encoder_hidden_states = torch.cat([
             uncond_embeddings,      # Unconditional
             text_embeddings,        # Text conditional
-            text_embeddings,        # Text + sketch conditional
         ])
         
-        # Prepare hint features for CFG
-        batch_hint_features = {}
-        for res, features in hint_features.items():
-            batch_hint_features[res] = torch.cat([
-                torch.zeros_like(features),  # No sketch
-                torch.zeros_like(features),  # No sketch (text only)
-                features,                    # With sketch
-            ])
-        
-        # Predict noise
+        # Predict noise (standard UNet without hint injection for now)
         noise_pred = unet(
             latent_model_input,
             t,
             encoder_hidden_states=encoder_hidden_states,
-            hint_features=batch_hint_features,
         ).sample
         
-        # Split predictions
-        noise_pred_uncond, noise_pred_text, noise_pred_sketch = noise_pred.chunk(3)
+        # Perform CFG
+        noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+        noise_pred = noise_pred_uncond + guidance_scale_text * (noise_pred_text - noise_pred_uncond)
         
-        # Apply dual classifier-free guidance
-        noise_pred = (
-            noise_pred_uncond +
-            guidance_scale_text * (noise_pred_text - noise_pred_uncond) +
-            guidance_scale_sketch * (noise_pred_sketch - noise_pred_text)
-        )
+        # Split predictions
         
         # Compute previous sample
         latents = noise_scheduler.step(noise_pred, t, latents).prev_sample
