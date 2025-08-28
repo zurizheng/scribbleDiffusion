@@ -16,6 +16,18 @@ COCO_DIR="$PROJECT_ROOT/data/coco"
 mkdir -p "$COCO_DIR"
 cd "$COCO_DIR"
 
+# Check and install required tools
+echo "🔧 Checking required tools..."
+if ! command -v wget &> /dev/null; then
+    echo "Installing wget..."
+    apt-get update && apt-get install -y wget
+fi
+
+if ! command -v unzip &> /dev/null; then
+    echo "Installing unzip..."
+    apt-get update && apt-get install -y unzip
+fi
+
 # Check available disk space (COCO is ~25GB)
 echo "📊 Checking disk space..."
 df -h .
@@ -47,7 +59,18 @@ fi
 # Extract training images
 if [ ! -d "train2017" ]; then
     echo "📦 Extracting training images..."
-    unzip -q train2017.zip
+    if command -v unzip &> /dev/null; then
+        unzip -q train2017.zip
+    else
+        echo "Using Python to extract (unzip not available)..."
+        python3 -c "
+import zipfile
+import os
+with zipfile.ZipFile('train2017.zip', 'r') as zip_ref:
+    zip_ref.extractall('.')
+print('✅ Extraction completed')
+"
+    fi
     echo "✅ Training images extracted"
 else
     echo "✅ train2017 directory already exists"
@@ -56,7 +79,18 @@ fi
 # Extract validation images
 if [ ! -d "val2017" ]; then
     echo "📦 Extracting validation images..."
-    unzip -q val2017.zip
+    if command -v unzip &> /dev/null; then
+        unzip -q val2017.zip
+    else
+        echo "Using Python to extract (unzip not available)..."
+        python3 -c "
+import zipfile
+import os
+with zipfile.ZipFile('val2017.zip', 'r') as zip_ref:
+    zip_ref.extractall('.')
+print('✅ Extraction completed')
+"
+    fi
     echo "✅ Validation images extracted"
 else
     echo "✅ val2017 directory already exists"
@@ -65,7 +99,18 @@ fi
 # Extract annotations
 if [ ! -d "annotations" ]; then
     echo "📦 Extracting annotations..."
-    unzip -q annotations_trainval2017.zip
+    if command -v unzip &> /dev/null; then
+        unzip -q annotations_trainval2017.zip
+    else
+        echo "Using Python to extract (unzip not available)..."
+        python3 -c "
+import zipfile
+import os
+with zipfile.ZipFile('annotations_trainval2017.zip', 'r') as zip_ref:
+    zip_ref.extractall('.')
+print('✅ Extraction completed')
+"
+    fi
     echo "✅ Annotations extracted"
 else
     echo "✅ annotations directory already exists"
