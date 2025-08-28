@@ -54,8 +54,12 @@ results/
 experiments/
 validation_outputs/
 
-# Dataset and data files
-data/
+# Dataset and data files (but keep source code)
+data/coco/
+data/synthetic/
+data/custom/
+data/*.json
+data/*.csv
 dataset/
 *.jpg
 *.jpeg
@@ -64,7 +68,9 @@ dataset/
 *.tiff
 *.webp
 *.gif
-# Keep example images for documentation
+# Keep source code and example images
+!src/data/
+!src/data/**
 !examples/*.png
 !examples/*.jpg
 !docs/*.png
@@ -197,10 +203,19 @@ temp_*.py
 test_*.py
 !examples/test_*.py
 
-# Ignore model downloads directory
-models/
+# Ignore model downloads directory (but keep source code)
+models/exported/
+models/checkpoints/
+models/downloaded/
+models/*.pth
+models/*.pt
+models/*.ckpt
+models/*.safetensors
 pretrained/
 downloaded_models/
+# Keep source code
+!src/models/
+!src/models/**
 
 # Ignore any API keys or credentials
 credentials.json
