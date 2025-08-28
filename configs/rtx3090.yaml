@@ -19,7 +19,7 @@ model:
   # Sketch Conditioning (ControlNet-lite) - Enhanced for high-capacity training
   hint_encoder:
     in_channels: 1  # Binary edge map
-    hint_channels: [64, 128, 256, 512]  # Proportional to 320 base channels
+    hint_channels: [320, 640, 1280, 1280]  # Match UNet channel progression
     injection_layers: [0, 1, 2, 3]  # Inject at all scales
     injection_method: "add"  # "add" or "film"
     
