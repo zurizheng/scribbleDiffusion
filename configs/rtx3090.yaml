@@ -39,10 +39,10 @@ diffusion:
   prediction_type: "epsilon"
   clip_sample: false
   
-# High-Performance Training Configuration
+# Memory-Optimized Training Configuration for RTX 3090
 training:
-  batch_size: 12  # Aggressive batch size for 24GB VRAM
-  gradient_accumulation_steps: 3  # Effective batch size of 36
+  batch_size: 6   # Reduced from 12 for memory safety
+  gradient_accumulation_steps: 6  # Effective batch size still 36
   learning_rate: 0.0001
   lr_scheduler: cosine_with_restarts
   num_warmup_steps: 1000
@@ -53,8 +53,8 @@ training:
   beta2: 0.999
   epsilon: 1.0e-08
   mixed_precision: fp16  # Still beneficial for speed
-  gradient_checkpointing: false  # Disabled for speed
-  use_ema: true
+  gradient_checkpointing: true   # Enable for memory savings
+  use_ema: false  # Disable EMA to save memory for now
   ema_decay: 0.9999
   text_drop_prob: 0.1
   sketch_drop_prob: 0.1

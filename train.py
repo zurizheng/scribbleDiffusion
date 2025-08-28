@@ -132,6 +132,10 @@ def main():
         cross_attention_dim=768,
     )
     
+    # Enable gradient checkpointing for memory efficiency
+    if config.training.gradient_checkpointing:
+        unet.enable_gradient_checkpointing()
+    
     # Initialize HintEncoder with matching channels for future integration
     hint_encoder_config = dict(config.model.hint_encoder)
     # Use standard diffusers UNet channel progression: [320, 640, 1280, 1280]
