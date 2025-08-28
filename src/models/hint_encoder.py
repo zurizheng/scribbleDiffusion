@@ -1,8 +1,13 @@
 """
 Hint Encoder for sketch conditioning (ControlNet-lite).
-Converts binary edge maps to multi-resolution feature maps.
-"""
-
+Converts binary edge maps to multi-resolution feature maps.        
+        Args:
+            sketch: Binary edge map [B, 1, 512, 512] (updated for high-resolution)
+            
+        Returns:
+            Dict mapping resolution strings to feature tensors
+            e.g., {"64": tensor[B, 192, 64, 64], "32": tensor[B, 384, 32, 32], ...}
+        """
 from typing import Dict, List, Optional
 
 import torch
@@ -43,11 +48,11 @@ class HintEncoder(nn.Module):
         
         # Build encoder blocks for different resolutions
         # We'll create conv blocks that downsample the sketch
-        # to match U-Net feature map resolutions: 32, 16, 8, 4
+        # to match U-Net feature map resolutions: 64, 32, 16, 8 (for 512x512 input)
         
         self.blocks = nn.ModuleList()
         
-        # Block 0: 256 -> 32 (8x downsample)
+        # Block 0: 512 -> 64 (8x downsample)
         self.blocks.append(
             nn.Sequential(
                 nn.Conv2d(in_channels, hint_channels[0], 7, stride=8, padding=3),
@@ -57,7 +62,7 @@ class HintEncoder(nn.Module):
             )
         )
         
-        # Block 1: 32 -> 16 (2x downsample)
+        # Block 1: 64 -> 32 (2x downsample)
         self.blocks.append(
             nn.Sequential(
                 nn.Conv2d(hint_channels[0], hint_channels[1], 3, stride=2, padding=1),
@@ -67,7 +72,7 @@ class HintEncoder(nn.Module):
             )
         )
         
-        # Block 2: 16 -> 8 (2x downsample)
+        # Block 2: 32 -> 16 (2x downsample)
         self.blocks.append(
             nn.Sequential(
                 nn.Conv2d(hint_channels[1], hint_channels[2], 3, stride=2, padding=1),
@@ -77,7 +82,7 @@ class HintEncoder(nn.Module):
             )
         )
         
-        # Block 3: 8 -> 4 (2x downsample)
+        # Block 3: 16 -> 8 (2x downsample)
         self.blocks.append(
             nn.Sequential(
                 nn.Conv2d(hint_channels[2], hint_channels[3], 3, stride=2, padding=1),
@@ -129,7 +134,7 @@ class HintEncoder(nn.Module):
         
         features = {}
         x = sketch
-        resolutions = [32, 16, 8, 4]
+        resolutions = [64, 32, 16, 8]  # Updated for 512x512 input -> 64x64 latents
         
         for i, (block, zero_conv, res) in enumerate(zip(self.blocks, self.zero_convs, resolutions)):
             x = block(x)
