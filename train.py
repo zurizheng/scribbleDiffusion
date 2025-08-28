@@ -210,9 +210,22 @@ def main():
     # Initialize tracking
     if accelerator.is_main_process:
         run_name = config.logging.run_name or f"scribble-diffusion-{int(time.time())}"
+        
+        # Create a flattened config with only basic types for TensorBoard
+        tracking_config = {
+            "learning_rate": float(config.training.learning_rate),
+            "batch_size": int(config.training.batch_size),
+            "max_train_steps": int(config.training.max_train_steps),
+            "gradient_accumulation_steps": int(config.training.gradient_accumulation_steps),
+            "resolution": int(config.data.resolution),
+            "dataset_name": str(config.data.dataset_name),
+            "unet_channels": str(config.model.unet.in_channels),
+            "mixed_precision": str(config.training.mixed_precision),
+        }
+        
         accelerator.init_trackers(
             config.logging.project_name,
-            config=OmegaConf.to_container(config, resolve=True),
+            config=tracking_config,
             init_kwargs={"wandb": {"name": run_name}},
         )
     
