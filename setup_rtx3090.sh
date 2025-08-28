@@ -33,13 +33,21 @@ pip install --upgrade pip --root-user-action=ignore
 
 # Install PyTorch with CUDA support for RTX 3090
 echo "🔥 Installing PyTorch with CUDA 11.7 support (detected CUDA 11.7.1)..."
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117 --root-user-action=ignore
+echo "📍 Using pip: $(which pip)"
+echo "📍 Using python: $(which python)"
+echo "📍 Virtual env: $VIRTUAL_ENV"
+
+# Try installing with verbose output
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117 --root-user-action=ignore --verbose
 
 # Check if PyTorch installed successfully
 echo "🔍 Checking PyTorch installation..."
+python -c "import sys; print('Python path:', sys.path)" 
 python -c "import torch; print('✅ PyTorch imported successfully')" || {
-    echo "❌ PyTorch installation failed. Trying CPU-only version as fallback..."
-    pip install torch torchvision torchaudio --root-user-action=ignore
+    echo "❌ PyTorch installation failed. Checking what packages are installed..."
+    pip list | grep -i torch || echo "No torch packages found"
+    echo "Trying CPU-only version as fallback..."
+    pip install torch torchvision torchaudio --root-user-action=ignore --verbose
 }
 
 # Verify PyTorch CUDA installation immediately after install
