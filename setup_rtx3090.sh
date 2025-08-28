@@ -79,7 +79,8 @@ mkdir -p cache
 # Check if COCO data exists
 if [ ! -d "data/coco/train2017" ]; then
     echo "📊 COCO dataset not found. You can download it later or use the download script."
-    echo "To download COCO dataset, run: bash data/coco/download_coco.sh"
+    echo "    echo "To download COCO dataset if training on real data:"
+    echo "  bash scripts/download_coco.sh""
 else
     echo "✅ COCO dataset found"
 fi
