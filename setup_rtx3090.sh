@@ -32,13 +32,13 @@ echo "⬆️ Upgrading pip..."
 pip install --upgrade pip --root-user-action=ignore
 
 # Install PyTorch with CUDA support for RTX 3090
-echo "🔥 Installing PyTorch with CUDA 12.1 support..."
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --root-user-action=ignore
+echo "🔥 Installing PyTorch with CUDA 11.7 support (detected CUDA 11.7.1)..."
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117 --root-user-action=ignore
 
 # Check if PyTorch installed successfully
 echo "🔍 Checking PyTorch installation..."
 python -c "import torch; print('✅ PyTorch imported successfully')" || {
-    echo "❌ PyTorch installation failed. Trying alternative method..."
+    echo "❌ PyTorch installation failed. Trying CPU-only version as fallback..."
     pip install torch torchvision torchaudio --root-user-action=ignore
 }
 
@@ -49,10 +49,13 @@ import torch
 print(f'PyTorch version: {torch.__version__}')
 print(f'CUDA available: {torch.cuda.is_available()}')
 print(f'CUDA version: {torch.version.cuda}')
+print(f'Expected CUDA: 11.7 (Container has CUDA 11.7.1)')
 print(f'GPU count: {torch.cuda.device_count()}')
 if torch.cuda.is_available():
     print(f'GPU name: {torch.cuda.get_device_name(0)}')
     print(f'GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB')
+else:
+    print('⚠️  CUDA not available - check CUDA compatibility')
 "
 
 # Install other ML dependencies
