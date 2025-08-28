@@ -30,7 +30,6 @@ from tqdm.auto import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer
 
 from src.data.dataset import ScribbleDataset
-from src.models.hint_encoder import HintEncoder
 from src.training.losses import DiffusionLoss
 from src.training.ema import EMAModel
 from src.utils.validation import validate_model
@@ -136,13 +135,22 @@ def main():
     if config.training.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
     
-    # Initialize HintEncoder with matching channels for future integration
-    hint_encoder_config = dict(config.model.hint_encoder)
-    # Use standard diffusers UNet channel progression: [320, 640, 1280, 1280]
-    unet_channels = [320, 640, 1280, 1280]
-    hint_encoder_config['unet_channels'] = unet_channels
-    hint_encoder = HintEncoder(**hint_encoder_config)
-    print(f"RTX 3090 configuration - hint injection channels: {unet_channels}")
+    # Initialize HintEncoder with cross-attention approach
+    from src.models.sketch_encoder import SketchCrossAttentionEncoder, SketchTextCombiner
+    
+    sketch_encoder = SketchCrossAttentionEncoder(
+        in_channels=1,
+        hidden_dim=512,
+        num_sketch_tokens=77,  # Match text sequence length
+        cross_attention_dim=768,  # Match CLIP embedding dimension
+    )
+    
+    sketch_text_combiner = SketchTextCombiner(
+        cross_attention_dim=768,
+        combination_method="concat",  # Start with simple concatenation
+    )
+    
+    print(f"RTX 3090 configuration - using cross-attention sketch conditioning")
     
     # Initialize noise scheduler
     noise_scheduler = DDIMScheduler(
@@ -155,10 +163,15 @@ def main():
     # Initialize EMA
     if config.training.use_ema:
         ema_unet = EMAModel(unet.parameters(), decay=config.training.ema_decay)
-        ema_hint_encoder = EMAModel(hint_encoder.parameters(), decay=config.training.ema_decay)
+        ema_sketch_encoder = EMAModel(sketch_encoder.parameters(), decay=config.training.ema_decay)
+        ema_sketch_text_combiner = EMAModel(sketch_text_combiner.parameters(), decay=config.training.ema_decay)
     
     # Setup optimizer
-    trainable_params = list(unet.parameters()) + list(hint_encoder.parameters())
+    trainable_params = (
+        list(unet.parameters()) + 
+        list(sketch_encoder.parameters()) + 
+        list(sketch_text_combiner.parameters())
+    )
     if config.training.optimizer == "adamw":
         optimizer = torch.optim.AdamW(
             trainable_params,
@@ -210,8 +223,8 @@ def main():
     loss_fn = DiffusionLoss(config.training)
     
     # Prepare everything with accelerator
-    unet, hint_encoder, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
-        unet, hint_encoder, optimizer, train_dataloader, lr_scheduler
+    unet, sketch_encoder, sketch_text_combiner, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
+        unet, sketch_encoder, sketch_text_combiner, optimizer, train_dataloader, lr_scheduler
     )
     
     # Move frozen models to device
@@ -279,14 +292,17 @@ def main():
                 if random.random() < config.training.sketch_drop_prob:
                     sketch_conditioning = torch.zeros_like(sketches)
                 
-                # Get hint features from sketch (for future ControlNet-style integration)
-                hint_features = hint_encoder(sketch_conditioning)
+                # Get sketch embeddings
+                sketch_embeddings = sketch_encoder(sketch_conditioning)
                 
-                # Predict noise (standard UNet without hint injection for now)
+                # Combine text and sketch embeddings
+                combined_embeddings = sketch_text_combiner(encoder_hidden_states, sketch_embeddings)
+                
+                # Predict noise with combined conditioning
                 model_pred = unet(
                     noisy_latents,
                     timesteps,
-                    encoder_hidden_states=encoder_hidden_states,
+                    encoder_hidden_states=combined_embeddings,
                 ).sample
                 
                 # Calculate loss
@@ -305,7 +321,8 @@ def main():
             if accelerator.sync_gradients:
                 if config.training.use_ema:
                     ema_unet.step(unet.parameters())
-                    ema_hint_encoder.step(hint_encoder.parameters())
+                    ema_sketch_encoder.step(sketch_encoder.parameters())
+                    ema_sketch_text_combiner.step(sketch_text_combiner.parameters())
                 global_step += 1
             
             # Logging
@@ -319,17 +336,19 @@ def main():
                 accelerator.log(logs, step=global_step)
                 logger.info(f"Step {global_step}: Loss = {loss.detach().item():.4f}")
             
-            # Validation
-            if global_step % config.validation.validation_steps == 0:
+            # Validation (temporarily disabled for Phase 2)
+            if False and global_step % config.validation.validation_steps == 0:
                 logger.info("Running validation...")
                 
                 # Get the actual models for validation
                 val_unet = unet  # Use original unet, not EMA for now
-                val_hint_encoder = hint_encoder  # Use original hint_encoder, not EMA for now
+                val_sketch_encoder = sketch_encoder  # Use original sketch_encoder, not EMA for now
+                val_sketch_text_combiner = sketch_text_combiner  # Use original combiner, not EMA for now
                 
                 validation_logs = validate_model(
                     unet=val_unet,
-                    hint_encoder=val_hint_encoder,
+                    sketch_encoder=val_sketch_encoder,
+                    sketch_text_combiner=val_sketch_text_combiner,
                     vae=vae,
                     text_encoder=text_encoder,
                     tokenizer=tokenizer,
