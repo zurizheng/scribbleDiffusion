@@ -77,18 +77,40 @@ echo "🧪 Testing diffusers installation..."
 python -c "
 import numpy
 print(f'NumPy version: {numpy.__version__}')
-import diffusers
-print(f'Diffusers version: {diffusers.__version__}')
-from diffusers import AutoencoderKL
-print('✅ Diffusers working correctly with stable versions')
+
+try:
+    import diffusers
+    print(f'Diffusers version: {diffusers.__version__}')
+    from diffusers import AutoencoderKL
+    print('✅ Diffusers working correctly with stable versions')
+except ImportError as e:
+    print(f'❌ Diffusers import failed: {e}')
+    print('Checking if diffusers is installed...')
+    import subprocess
+    result = subprocess.run(['python', '-m', 'pip', 'list'], capture_output=True, text=True)
+    if 'diffusers' in result.stdout:
+        print('Diffusers is installed but not importable')
+    else:
+        print('Diffusers is not installed')
 "
 
 # Install other ML dependencies with compatible versions
 echo "📦 Installing ML libraries with compatible versions..."
-python -m pip install accelerate==0.20.3
-python -m pip install transformers==4.30.2  
-python -m pip install diffusers==0.18.2  # Stable version compatible with PyTorch 2.0.1
-python -m pip install datasets==2.13.1
+echo "Installing accelerate..."
+python -m pip install accelerate==0.20.3 || echo "❌ Accelerate installation failed"
+
+echo "Installing transformers..."
+python -m pip install transformers==4.30.2 || echo "❌ Transformers installation failed"
+
+echo "Installing diffusers..."
+python -m pip install diffusers==0.18.2 || echo "❌ Diffusers installation failed"
+
+echo "Installing datasets..."
+python -m pip install datasets==2.13.1 || echo "❌ Datasets installation failed"
+
+# Verify what actually got installed
+echo "📋 Checking installed ML packages..."
+python -m pip list | grep -E "(accelerate|transformers|diffusers|datasets)" || echo "No ML packages found"
 
 # Install additional dependencies
 echo "📦 Installing additional dependencies..."
