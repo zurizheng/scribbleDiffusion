@@ -30,7 +30,6 @@ from tqdm.auto import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer
 
 from src.data.dataset import ScribbleDataset
-from src.models.unet import SketchConditionedUNet
 from src.models.hint_encoder import HintEncoder
 from src.training.losses import DiffusionLoss
 from src.training.ema import EMAModel
@@ -118,20 +117,28 @@ def main():
     
     # Initialize trainable models
     logger.info("Initializing trainable models...")
-    unet = SketchConditionedUNet(**config.model.unet)
     
-    # Calculate UNet channels for HintEncoder matching
-    model_channels = config.model.unet.model_channels
-    channel_mult = config.model.unet.channel_mult
-    # Standard SD 1.5 architecture: 320 base with [1,2,4,4] multipliers
-    # At injection points: [320, 320, 640, 1280] channels expected
-    unet_channels = [model_channels] + [model_channels * mult for mult in channel_mult[1:]]
-    print(f"RTX 3090 configuration - hint injection channels: {unet_channels}")
+    # Use standard diffusers UNet2DConditionModel for compatibility
+    from diffusers import UNet2DConditionModel
+    unet = UNet2DConditionModel(
+        in_channels=config.model.unet.in_channels,
+        out_channels=config.model.unet.out_channels,
+        down_block_types=("CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "DownBlock2D"),
+        up_block_types=("UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D"),
+        block_out_channels=(320, 640, 1280, 1280),
+        layers_per_block=2,
+        attention_head_dim=8,
+        norm_num_groups=32,
+        cross_attention_dim=768,
+    )
     
-    # Initialize HintEncoder with matching channels
+    # Initialize HintEncoder with matching channels for future integration
     hint_encoder_config = dict(config.model.hint_encoder)
+    # Use standard diffusers UNet channel progression: [320, 640, 1280, 1280]
+    unet_channels = [320, 640, 1280, 1280]
     hint_encoder_config['unet_channels'] = unet_channels
     hint_encoder = HintEncoder(**hint_encoder_config)
+    print(f"RTX 3090 configuration - hint injection channels: {unet_channels}")
     
     # Initialize noise scheduler
     noise_scheduler = DDIMScheduler(
@@ -268,15 +275,14 @@ def main():
                 if random.random() < config.training.sketch_drop_prob:
                     sketch_conditioning = torch.zeros_like(sketches)
                 
-                # Get hint features from sketch
+                # Get hint features from sketch (for future ControlNet-style integration)
                 hint_features = hint_encoder(sketch_conditioning)
                 
-                # Predict noise
+                # Predict noise (standard UNet without hint injection for now)
                 model_pred = unet(
                     noisy_latents,
                     timesteps,
                     encoder_hidden_states=encoder_hidden_states,
-                    hint_features=hint_features,
                 ).sample
                 
                 # Calculate loss
