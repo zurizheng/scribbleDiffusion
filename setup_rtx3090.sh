@@ -35,19 +35,7 @@ pip install --upgrade pip
 echo "🔥 Installing PyTorch with CUDA 12.1 support..."
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
-# Install other ML dependencies
-echo "📦 Installing ML libraries..."
-pip install accelerate transformers diffusers datasets
-
-# Install additional dependencies
-echo "📦 Installing additional dependencies..."
-pip install -r requirements.txt
-
-# Install development tools
-echo "🛠️ Installing development tools..."
-pip install tensorboard wandb opencv-python pillow numpy scipy matplotlib
-
-# Verify PyTorch CUDA installation
+# Verify PyTorch CUDA installation immediately after install
 echo "✅ Verifying PyTorch CUDA installation..."
 python -c "
 import torch
@@ -59,6 +47,18 @@ if torch.cuda.is_available():
     print(f'GPU name: {torch.cuda.get_device_name(0)}')
     print(f'GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB')
 "
+
+# Install other ML dependencies
+echo "📦 Installing ML libraries..."
+pip install accelerate transformers diffusers datasets
+
+# Install additional dependencies
+echo "📦 Installing additional dependencies..."
+pip install -r requirements.txt
+
+# Install development tools
+echo "🛠️ Installing development tools..."
+pip install tensorboard wandb opencv-python pillow numpy scipy matplotlib
 
 # Test diffusers installation
 echo "🧪 Testing diffusers installation..."
