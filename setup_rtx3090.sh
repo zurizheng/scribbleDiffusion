@@ -29,11 +29,18 @@ echo "Virtual environment activated"
 
 # Upgrade pip
 echo "⬆️ Upgrading pip..."
-pip install --upgrade pip
+pip install --upgrade pip --root-user-action=ignore
 
 # Install PyTorch with CUDA support for RTX 3090
 echo "🔥 Installing PyTorch with CUDA 12.1 support..."
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --root-user-action=ignore
+
+# Check if PyTorch installed successfully
+echo "🔍 Checking PyTorch installation..."
+python -c "import torch; print('✅ PyTorch imported successfully')" || {
+    echo "❌ PyTorch installation failed. Trying alternative method..."
+    pip install torch torchvision torchaudio --root-user-action=ignore
+}
 
 # Verify PyTorch CUDA installation immediately after install
 echo "✅ Verifying PyTorch CUDA installation..."
@@ -50,15 +57,15 @@ if torch.cuda.is_available():
 
 # Install other ML dependencies
 echo "📦 Installing ML libraries..."
-pip install accelerate transformers diffusers datasets
+pip install accelerate transformers diffusers datasets --root-user-action=ignore
 
 # Install additional dependencies
 echo "📦 Installing additional dependencies..."
-pip install -r requirements.txt
+pip install -r requirements.txt --root-user-action=ignore
 
 # Install development tools
 echo "🛠️ Installing development tools..."
-pip install tensorboard wandb opencv-python pillow numpy scipy matplotlib
+pip install tensorboard wandb opencv-python pillow numpy scipy matplotlib --root-user-action=ignore
 
 # Test diffusers installation
 echo "🧪 Testing diffusers installation..."
