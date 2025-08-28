@@ -102,8 +102,11 @@ python -m pip install accelerate==0.20.3 || echo "❌ Accelerate installation fa
 echo "Installing transformers..."
 python -m pip install transformers==4.30.2 || echo "❌ Transformers installation failed"
 
-echo "Installing diffusers..."
-python -m pip install diffusers==0.18.2 || echo "❌ Diffusers installation failed"
+echo "Ensuring diffusers is correct version..."
+python -m pip uninstall diffusers -y 2>/dev/null || true
+python -m pip install diffusers==0.18.2 --no-deps || echo "❌ Diffusers installation failed"
+# Install diffusers dependencies separately
+python -m pip install huggingface-hub regex requests Pillow safetensors
 
 echo "Installing datasets..."
 python -m pip install datasets==2.13.1 || echo "❌ Datasets installation failed"
@@ -112,9 +115,13 @@ python -m pip install datasets==2.13.1 || echo "❌ Datasets installation failed
 echo "📋 Checking installed ML packages..."
 python -m pip list | grep -E "(accelerate|transformers|diffusers|datasets)" || echo "No ML packages found"
 
-# Install additional dependencies
+# Install additional dependencies (skip requirements.txt for now to avoid conflicts)
 echo "📦 Installing additional dependencies..."
-python -m pip install -r requirements.txt
+echo "Skipping requirements.txt to avoid version conflicts..."
+# python -m pip install -r requirements.txt
+
+# Install only essential additional packages manually
+python -m pip install tqdm omegaconf safetensors einops Pillow opencv-python
 
 # Install development tools
 echo "🛠️ Installing development tools..."
