@@ -190,34 +190,12 @@ def main():
             split="train",
         )
     
-    # Custom collate function to handle size mismatches
-    def debug_collate_fn(batch):
-        """Debug collate function that prints tensor shapes and handles mismatches."""
-        for i, item in enumerate(batch):
-            print(f"Batch item {i}: images={item['images'].shape}, sketches={item['sketches'].shape}")
-            # Ensure all images are exactly the right size
-            if item['images'].shape != (3, 512, 512):
-                print(f"WARNING: Resizing image from {item['images'].shape} to (3, 512, 512)")
-                item['images'] = torch.nn.functional.interpolate(
-                    item['images'].unsqueeze(0), size=(512, 512), mode='bilinear', align_corners=False
-                ).squeeze(0)
-            if item['sketches'].shape != (1, 512, 512):
-                print(f"WARNING: Resizing sketch from {item['sketches'].shape} to (1, 512, 512)")
-                item['sketches'] = torch.nn.functional.interpolate(
-                    item['sketches'].unsqueeze(0), size=(512, 512), mode='bilinear', align_corners=False
-                ).squeeze(0)
-        
-        # Use default collate after ensuring consistent shapes
-        from torch.utils.data._utils.collate import default_collate
-        return default_collate(batch)
-    
     train_dataloader = DataLoader(
         train_dataset,
         shuffle=True,
         batch_size=config.training.batch_size,
-        num_workers=0,  # Disable multiprocessing for debugging
-        pin_memory=False,  # Disable pin_memory to avoid connection issues
-        collate_fn=debug_collate_fn,  # Use debug collate function
+        num_workers=2,  # Conservative multiprocessing
+        pin_memory=True,
     )
     
     # Setup learning rate scheduler
