@@ -235,7 +235,7 @@ def main():
     
     for epoch in range(1000):  # Large number, we'll break based on max_train_steps
         for step, batch in enumerate(train_dataloader):
-            with accelerator.accumulate(unet, hint_encoder):
+            with accelerator.accumulate(unet):
                 # Get batch data
                 images = batch["images"]
                 sketches = batch["sketches"]
