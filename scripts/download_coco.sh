@@ -67,18 +67,12 @@ if [ ! -d "train2017" ]; then
         python3 -c "
 import zipfile
 import os
-import sys
+from tqdm import tqdm
 
-print('   Extracting ~118,000 training images...')
 with zipfile.ZipFile('train2017.zip', 'r') as zip_ref:
     files = zip_ref.namelist()
-    total = len(files)
-    for i, file in enumerate(files):
+    for file in tqdm(files, desc='Extracting training images', unit='files'):
         zip_ref.extract(file, '.')
-        if i % 1000 == 0:  # Progress every 1000 files
-            percent = (i / total) * 100
-            print(f'   Progress: {i:,}/{total:,} files ({percent:.1f}%)', flush=True)
-    print(f'   ✅ Extracted {total:,} files')
 "
     fi
     echo "✅ Training images extracted"
@@ -104,18 +98,12 @@ if [ ! -d "val2017" ]; then
         python3 -c "
 import zipfile
 import os
-import sys
+from tqdm import tqdm
 
-print('   Extracting ~5,000 validation images...')
 with zipfile.ZipFile('val2017.zip', 'r') as zip_ref:
     files = zip_ref.namelist()
-    total = len(files)
-    for i, file in enumerate(files):
+    for file in tqdm(files, desc='Extracting validation images', unit='files'):
         zip_ref.extract(file, '.')
-        if i % 500 == 0:  # Progress every 500 files
-            percent = (i / total) * 100
-            print(f'   Progress: {i:,}/{total:,} files ({percent:.1f}%)', flush=True)
-    print(f'   ✅ Extracted {total:,} files')
 "
     fi
     echo "✅ Validation images extracted"
@@ -141,15 +129,12 @@ if [ ! -d "annotations" ]; then
         python3 -c "
 import zipfile
 import os
-import sys
+from tqdm import tqdm
 
-print('   Extracting annotation files...')
 with zipfile.ZipFile('annotations_trainval2017.zip', 'r') as zip_ref:
     files = zip_ref.namelist()
-    for file in files:
-        print(f'   Extracting: {file}')
+    for file in tqdm(files, desc='Extracting annotations', unit='files'):
         zip_ref.extract(file, '.')
-print('   ✅ Annotations extracted')
 "
     fi
     echo "✅ Annotations extracted"
