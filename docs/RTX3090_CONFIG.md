@@ -1,6 +1,6 @@
 # RTX 3090 24GB VRAM Configuration Summary
 
-## 🚀 Optimized for High-Performance Training
+## Optimized for High-Performance Training
 
 ### Architecture Enhancements:
 - **UNet**: Standard SD 1.5 architecture (320 base channels)
@@ -22,7 +22,7 @@
 - **Resolution**: 4x higher output resolution
 - **Batch Effects**: Better gradient estimates, more stable training
 
-## 📊 Resource Utilization Estimate
+## Resource Utilization Estimate
 
 ### VRAM Usage (RTX 3090 24GB):
 - **UNet**: ~8-10GB 
@@ -30,14 +30,14 @@
 - **Text Encoder**: ~2GB
 - **Batch Data**: ~4-6GB
 - **Optimizer States**: ~3-4GB
-- **Total**: ~18-23GB ✅ (fits comfortably)
+- **Total**: ~18-23GB  (fits comfortably)
 
 ### Training Time Estimates:
 - **50K steps**: ~8-12 hours (vs 40+ hours on GTX 1650)
 - **Validation**: Every 500 steps (10-15 minutes)
 - **Checkpoint**: Every 2000 steps
 
-## 🎯 Key Configuration Files:
+## Key Configuration Files:
 
 ### Primary: `configs/rtx3090.yaml`
 - Optimized for RTX 3090 24GB VRAM
@@ -50,7 +50,7 @@
 - More conservative batch sizes
 - Compatible with both GPUs
 
-## 🔧 Usage Instructions:
+## Usage Instructions:
 
 When you move to RTX 3090, simply run:
 ```bash
@@ -63,7 +63,7 @@ The configuration will automatically:
 - Provide frequent validation outputs
 - Save checkpoints regularly
 
-## 💡 Additional Optimizations Available:
+## Additional Optimizations Available:
 
 If you want even higher performance:
 - **Batch Size**: Can increase to 16-20
@@ -72,7 +72,7 @@ If you want even higher performance:
 - **Architecture**: Add more transformer layers
 - **Multi-GPU**: Scale to multiple RTX 3090s
 
-## 🎨 Expected Output Quality:
+## Expected Output Quality:
 
 With RTX 3090 configuration:
 - **Much sharper details** due to 512px resolution
@@ -83,4 +83,4 @@ With RTX 3090 configuration:
 
 ---
 
-**Ready to unleash the full power of your RTX 3090! 🔥**
+**Ready to unleash the full power of your RTX 3090! **

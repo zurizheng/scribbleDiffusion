@@ -1,34 +1,34 @@
 # ScribbleDiffusion Development Log: Problems & Solutions
 
-**Project**: Complete ScribbleDiffusion MVP with ControlNet-lite sketch conditioning  
-**Hardware**: NVIDIA GeForce GTX 1650 (4GB VRAM)  
+**Project**: Complete ScribbleDiffusion MVP with ControlNet-lite sketch conditioning
+**Hardware**: NVIDIA GeForce GTX 1650 (4GB VRAM)
 **Goal**: Lightweight diffusion model with sketch conditioning for laptop training
 
 ---
 
-## 🎯 Final Status
+## Final Status
 
-**✅ Achieved:**
+** Achieved:**
 - Complete ScribbleDiffusion architecture implemented
-- Working channel matching between UNet and HintEncoder  
+- Working channel matching between UNet and HintEncoder
 - 4GB VRAM memory optimizations identified
 - Training pipeline functional (reaches training loop)
 - Comprehensive validation framework
 
-**🔄 Remaining:**
+** Remaining:**
 - Final training configuration tuning for 4GB constraints
 - Encoder/decoder block consistency in tiny UNet
 
 ---
 
-## 📋 Major Problems Encountered & Solutions
+## Major Problems Encountered & Solutions
 
-### 1. **Environment & Dependencies** 
+### 1. **Environment & Dependencies**
 **Problem**: Package conflicts and CUDA compatibility issues
 - `flash-attn` package conflicts with other dependencies
 - CUDA version mismatches affecting PyTorch installation
 
-**Solution**: 
+**Solution**:
 - Removed problematic packages from requirements.txt
 - Used PyTorch 2.8.0+cu128 with CUDA 12.8 compatibility
 - Isolated environment with specific package versions
@@ -43,7 +43,7 @@
 ValueError: cosine schedule not supported by DDIMScheduler
 ```
 
-**Solution**: 
+**Solution**:
 - Changed `beta_schedule` from "cosine" to "linear" in config
 - Maintained same diffusion quality with linear schedule
 
@@ -57,7 +57,7 @@ ValueError: cosine schedule not supported by DDIMScheduler
 RuntimeError: The size of tensor a (192) must match the size of tensor b (384) at non-singleton dimension 1
 ```
 
-**Root Cause**: 
+**Root Cause**:
 - Hint injection happens at different UNet layers than assumed
 - Channel multiplier progression doesn't match injection timing
 - 4GB VRAM optimizations broke architectural consistency
@@ -72,7 +72,7 @@ RuntimeError: The size of tensor a (192) must match the size of tensor b (384) a
 # Attempt 1: Simple calculation (FAILED)
 unet_channels = [model_channels * mult for mult in channel_mult]  # [192, 384, 576, 768]
 
-# Attempt 2: Injection timing correction (PARTIAL)  
+# Attempt 2: Injection timing correction (PARTIAL)
 unet_channels = [model_channels, model_channels, model_channels, model_channels]  # [192, 192, 192, 192]
 
 # Attempt 3: Empirical testing (SUCCESS)
@@ -96,7 +96,7 @@ RuntimeError: CUDA out of memory
 
 **Attempted Optimizations**:
 1. **Batch Size Reduction**: 8 → 4 → 2 → 1
-2. **Channel Reduction**: 320 → 256 → 192 → 160 base channels  
+2. **Channel Reduction**: 320 → 256 → 192 → 160 base channels
 3. **Architecture Simplification**: 2 → 1 ResNet blocks per level
 4. **Gradient Accumulation**: Increased to maintain effective batch size
 5. **Mixed Precision**: FP16 training enabled
@@ -104,8 +104,8 @@ RuntimeError: CUDA out of memory
 
 **Memory Profile Discovered**:
 - Standard SD 1.5 (320 channels): >4GB VRAM
-- Medium reduction (256 channels): >4GB VRAM  
-- Aggressive reduction (160 channels): ~3GB VRAM ✅
+- Medium reduction (256 channels): >4GB VRAM
+- Aggressive reduction (160 channels): ~3GB VRAM
 
 **Files Modified**: `configs/coco.yaml`, multiple config iterations
 
@@ -130,7 +130,7 @@ RuntimeError: mat1 and mat2 shapes cannot be multiplied (308x512 and 768x384)
 RuntimeError: Expected weight to be a vector of size equal to the number of channels in input, but got weight of shape [1920] and input of shape [1, 1280, 1, 1]
 ```
 
-**Root Cause**: 
+**Root Cause**:
 - Reducing `model_channels` broke internal UNet architecture
 - Encoder and decoder blocks have hardcoded channel expectations
 - Diffusers UNet2DConditionModel has complex internal structure
@@ -148,7 +148,7 @@ RuntimeError: Expected weight to be a vector of size equal to the number of chan
 wandb: Enter your choice: 1
 ```
 
-**Solution**: 
+**Solution**:
 - Switched from `wandb` to `tensorboard` logging
 - Removed external service dependencies
 
@@ -164,7 +164,7 @@ Killed (code 137) - Out of memory
 
 **Investigation**:
 - SD 1.5 UNet: ~3.4GB model size
-- Additional components (VAE, text encoder): ~1GB  
+- Additional components (VAE, text encoder): ~1GB
 - Total memory requirement: >4GB VRAM + system RAM
 
 **Solutions Explored**:
@@ -190,7 +190,7 @@ Systematic testing of configurations by memory usage:
 ```python
 configs_to_test = [
     (320, [1, 2, 4, 4], "Standard"),
-    (256, [1, 2, 4, 4], "Reduced"), 
+    (256, [1, 2, 4, 4], "Reduced"),
     (192, [1, 2, 4, 4], "Small"),
     (160, [1, 2, 4, 4], "Tiny"),
 ]
@@ -208,7 +208,7 @@ Built `find_working_config.py` to automatically test and validate configurations
 
 ---
 
-## 💡 Key Insights Discovered
+## Key Insights Discovered
 
 ### 1. **4GB VRAM Reality Check**
 - Modern diffusion models designed for 8GB+ VRAM
@@ -232,7 +232,7 @@ Built `find_working_config.py` to automatically test and validate configurations
 
 ---
 
-## 🔧 Technical Solutions Implemented
+## Technical Solutions Implemented
 
 ### 1. **Adaptive Channel Calculation**
 ```python
@@ -251,7 +251,7 @@ training:
   gradient_accumulation_steps: 32
   mixed_precision: fp16
   gradient_checkpointing: true
-  
+
 model:
   unet:
     model_channels: 160  # Empirically tested maximum for 4GB
@@ -267,10 +267,10 @@ Built automated testing to validate configurations before training
 
 ---
 
-## 📊 Performance Metrics Achieved
+## Performance Metrics Achieved
 
 ### Memory Usage (4GB GTX 1650):
-- **160-channel UNet**: ~3.0GB VRAM ✅
+- **160-channel UNet**: ~3.0GB VRAM
 - **Batch size 1**: Memory stable
 - **Training initialization**: Successful
 - **Model loading**: <30 seconds
@@ -283,11 +283,11 @@ Built automated testing to validate configurations before training
 
 ---
 
-## 🎯 Remaining Work & Next Steps
+## Remaining Work & Next Steps
 
 ### Immediate (Training Ready):
 1. **Final encoder/decoder consistency**: Resolve remaining block mismatches
-2. **Training validation**: Complete one full training epoch  
+2. **Training validation**: Complete one full training epoch
 3. **Model checkpointing**: Ensure proper save/load functionality
 
 ### Future Enhancements:
@@ -308,7 +308,7 @@ Built automated testing to validate configurations before training
 
 ### Configuration:
 - `configs/coco.yaml` - Production training config
-- `configs/debug.yaml` - Development/testing config  
+- `configs/debug.yaml` - Development/testing config
 - `configs/validation.yaml` - Validation-only config
 
 ### Debugging Tools:
@@ -327,7 +327,7 @@ Built automated testing to validate configurations before training
 
 1. **Hardware constraints drive architecture decisions** more than theoretical optimality
 2. **Empirical testing beats theoretical calculation** for complex systems
-3. **Memory optimization requires holistic approach** across all components  
+3. **Memory optimization requires holistic approach** across all components
 4. **Documentation doesn't always match implementation reality**
 5. **Iterative debugging essential** for complex deep learning systems
 6. **4GB VRAM viable for custom training** with proper optimizations

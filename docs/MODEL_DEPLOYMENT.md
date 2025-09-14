@@ -47,7 +47,7 @@ git push
 - Version history for models
 - Works with GitHub (100MB file limit without LFS)
 
-### ☁️ Option 3: Cloud Storage Links
+### Option 3: Cloud Storage Links
 **Best for**: Private sharing, large models
 
 ```bash
@@ -91,7 +91,7 @@ python scripts/upload_to_hf.py \
 ### Step 3: Update Repository
 ```bash
 # Add model info to README
-echo "## 🎨 Pre-trained Model" >> README.md
+echo "## Pre-trained Model" >> README.md
 echo "Download: https://huggingface.co/your-username/scribble-diffusion-rtx3090" >> README.md
 
 # Commit the change
@@ -122,7 +122,7 @@ python scripts/upload_to_hf.py --model_path models/exported
 # Update documentation
 python scripts/update_readme.py --model_url "https://huggingface.co/your-username/scribble-diffusion"
 
-echo "🎉 Model deployed successfully!"
+echo " Model deployed successfully!"
 echo "📦 Available at: https://huggingface.co/your-username/scribble-diffusion"
 ```
 
