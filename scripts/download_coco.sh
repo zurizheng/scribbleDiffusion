@@ -61,7 +61,7 @@ if [ ! -d "train2017" ]; then
     echo "📦 Extracting training images..."
     if command -v unzip &> /dev/null; then
         echo "   Using unzip (this may take 2-3 minutes for ~118k images)..."
-        unzip train2017.zip
+        unzip -q train2017.zip
     else
         echo "Using Python to extract (unzip not available)..."
         python3 -c "
@@ -92,7 +92,7 @@ if [ ! -d "val2017" ]; then
     echo "📦 Extracting validation images..."
     if command -v unzip &> /dev/null; then
         echo "   Using unzip (this may take 30 seconds for ~5k images)..."
-        unzip val2017.zip > /dev/null
+        unzip -q val2017.zip
     else
         echo "Using Python to extract (unzip not available)..."
         python3 -c "
@@ -123,7 +123,7 @@ if [ ! -d "annotations" ]; then
     echo "📦 Extracting annotations..."
     if command -v unzip &> /dev/null; then
         echo "   Using unzip (quick - just a few files)..."
-        unzip annotations_trainval2017.zip
+        unzip -q annotations_trainval2017.zip
     else
         echo "Using Python to extract (unzip not available)..."
         python3 -c "
