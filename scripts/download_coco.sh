@@ -61,10 +61,7 @@ if [ ! -d "train2017" ]; then
     echo "📦 Extracting training images..."
     if command -v unzip &> /dev/null; then
         echo "   Using unzip (this may take 2-3 minutes for ~118k images)..."
-        unzip train2017.zip | while read line; do
-            echo -n "."
-        done
-        echo ""
+        unzip train2017.zip
     else
         echo "Using Python to extract (unzip not available)..."
         python3 -c "
@@ -85,6 +82,13 @@ with zipfile.ZipFile('train2017.zip', 'r') as zip_ref:
 "
     fi
     echo "✅ Training images extracted"
+    
+    # Immediately delete train zip to save ~18GB space
+    if [ -f "train2017.zip" ]; then
+        echo "🗑️ Deleting train2017.zip to save space (~18GB)..."
+        rm -f train2017.zip
+        echo "✅ train2017.zip deleted"
+    fi
 else
     echo "✅ train2017 directory already exists"
 fi
@@ -94,10 +98,7 @@ if [ ! -d "val2017" ]; then
     echo "📦 Extracting validation images..."
     if command -v unzip &> /dev/null; then
         echo "   Using unzip (this may take 30 seconds for ~5k images)..."
-        unzip val2017.zip | while read line; do
-            echo -n "."
-        done
-        echo ""
+        unzip val2017.zip > /dev/null
     else
         echo "Using Python to extract (unzip not available)..."
         python3 -c "
@@ -118,6 +119,13 @@ with zipfile.ZipFile('val2017.zip', 'r') as zip_ref:
 "
     fi
     echo "✅ Validation images extracted"
+    
+    # Immediately delete val zip to save ~1GB space
+    if [ -f "val2017.zip" ]; then
+        echo "🗑️ Deleting val2017.zip to save space (~1GB)..."
+        rm -f val2017.zip
+        echo "✅ val2017.zip deleted"
+    fi
 else
     echo "✅ val2017 directory already exists"
 fi
@@ -145,20 +153,18 @@ print('   ✅ Annotations extracted')
 "
     fi
     echo "✅ Annotations extracted"
+    
+    # Immediately delete annotations zip to save ~241MB space
+    if [ -f "annotations_trainval2017.zip" ]; then
+        echo "🗑️ Deleting annotations_trainval2017.zip to save space (~241MB)..."
+        rm -f annotations_trainval2017.zip
+        echo "✅ annotations_trainval2017.zip deleted"
+    fi
 else
     echo "✅ annotations directory already exists"
 fi
 
-# Clean up zip files to save space (optional)
-echo ""
-read -p "🗑️ Delete zip files to save ~19GB of space? (y/n): " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    rm -f train2017.zip val2017.zip annotations_trainval2017.zip
-    echo "✅ Zip files deleted"
-else
-    echo "📦 Zip files kept for future use"
-fi
+# Zip files already deleted during extraction to save space
 
 # Verify download
 echo ""
