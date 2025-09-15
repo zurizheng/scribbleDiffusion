@@ -27,14 +27,14 @@ def export_model(checkpoint_path, output_dir, format_type="safetensors"):
     
     # Extract model state dicts
     unet_state_dict = checkpoint.get('unet_state_dict', {})
-    hint_encoder_state_dict = checkpoint.get('hint_encoder_state_dict', {})
+    sketch_encoder_state_dict = checkpoint.get('sketch_encoder_state_dict', {})
     
     if not unet_state_dict:
         print("❌ No UNet state dict found in checkpoint")
         return False
         
-    if not hint_encoder_state_dict:
-        print("❌ No HintEncoder state dict found in checkpoint")
+    if not sketch_encoder_state_dict:
+        print("❌ No SketchEncoder state dict found in checkpoint")
         return False
     
     # Save models in requested format
@@ -42,15 +42,15 @@ def export_model(checkpoint_path, output_dir, format_type="safetensors"):
         print("💾 Saving UNet as SafeTensors...")
         save_file(unet_state_dict, output_dir / "unet.safetensors")
         
-        print("💾 Saving HintEncoder as SafeTensors...")
-        save_file(hint_encoder_state_dict, output_dir / "hint_encoder.safetensors")
+        print("💾 Saving SketchEncoder as SafeTensors...")
+        save_file(sketch_encoder_state_dict, output_dir / "sketch_encoder.safetensors")
         
     elif format_type == "pytorch":
         print("💾 Saving UNet as PyTorch...")
         torch.save(unet_state_dict, output_dir / "unet.pth")
         
-        print("💾 Saving HintEncoder as PyTorch...")
-        torch.save(hint_encoder_state_dict, output_dir / "hint_encoder.pth")
+        print("💾 Saving SketchEncoder as PyTorch...")
+        torch.save(sketch_encoder_state_dict, output_dir / "sketch_encoder.pth")
     
     # Save model configuration
     config = {
