@@ -175,6 +175,10 @@ echo "Installing OpenCV headless version..."
 python -m pip install opencv-python-headless  # Use headless version for RunPod
 python -m pip install tqdm omegaconf safetensors einops Pillow
 
+# Install COCO API tools
+echo "Installing pycocotools for COCO dataset support..."
+python -m pip install pycocotools
+
 # Install development tools
 echo "🛠️ Installing development tools..."
 python -m pip install tensorboard wandb pillow numpy scipy matplotlib
