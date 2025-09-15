@@ -36,7 +36,8 @@ class EMAModel:
             power: Power for warmup
         """
         parameters = list(parameters)
-        self.shadow_params = [p.clone().detach() for p in parameters]
+        # Clone shadow parameters on the same device as original parameters
+        self.shadow_params = [p.clone().detach().to(p.device) for p in parameters]
         self.collected_params = []
         
         self.decay = decay
@@ -77,8 +78,12 @@ class EMAModel:
         
         one_minus_decay = 1.0 - decay
         
-        for s_param, param in zip(self.shadow_params, parameters):
+        for i, (s_param, param) in enumerate(zip(self.shadow_params, parameters)):
             if param.requires_grad:
+                # Ensure shadow parameter is on same device as model parameter
+                if s_param.device != param.device:
+                    self.shadow_params[i] = s_param.to(param.device)
+                    s_param = self.shadow_params[i]
                 s_param.sub_(one_minus_decay * (s_param - param))
     
     def copy_to(self, parameters: Iterable[torch.nn.Parameter]):
