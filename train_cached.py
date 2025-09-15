@@ -276,6 +276,22 @@ def main():
                     # Only log occasionally to avoid interfering with progress bar
                     pass
 
+            # Save checkpoint at regular intervals
+            if global_step % config.logging.save_interval == 0:
+                if accelerator.is_main_process:
+                    # Save checkpoint
+                    save_path = f"{config.logging.project_name}/checkpoint-{global_step}"
+                    accelerator.save_state(save_path)
+                    
+                    # Also save just the model weights for easier export
+                    checkpoint_dict = {
+                        'unet_state_dict': accelerator.get_state_dict(unet),
+                        'hint_encoder_state_dict': accelerator.get_state_dict(hint_encoder),
+                        'step': global_step,
+                        'config': config.__dict__ if hasattr(config, '__dict__') else str(config)
+                    }
+                    torch.save(checkpoint_dict, f"{save_path}/pytorch_model.bin")
+
             global_step += 1
             
             if global_step >= config.training.max_train_steps:

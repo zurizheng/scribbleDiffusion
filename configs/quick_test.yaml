@@ -1,0 +1,65 @@
+# Quick test config - saves every 10 steps
+model:
+  unet:
+    sample_size: 512
+    in_channels: 4
+    out_channels: 4
+    layers_per_block: 2
+    block_out_channels: [320, 640, 1280, 1280]
+    down_block_types:
+      - "CrossAttnDownBlock2D"
+      - "CrossAttnDownBlock2D" 
+      - "CrossAttnDownBlock2D"
+      - "DownBlock2D"
+    up_block_types:
+      - "UpBlock2D"
+      - "CrossAttnUpBlock2D"
+      - "CrossAttnUpBlock2D"
+      - "CrossAttnUpBlock2D"
+    cross_attention_dim: 768
+    attention_head_dim: 8
+    use_linear_projection: true
+
+diffusion:
+  num_train_timesteps: 1000
+  beta_schedule: "scaled_linear"
+  prediction_type: "epsilon"
+  clip_sample: false
+
+training:
+  learning_rate: 1e-4
+  weight_decay: 0.01
+  epsilon: 1e-8
+  optimizer: "adamw"
+  max_train_steps: 50  # Very short test
+  batch_size: 1
+  gradient_accumulation_steps: 8
+  mixed_precision: "fp16"
+  gradient_clipping: 1.0
+  use_ema: false
+  ema_decay: 0.9999
+
+data:
+  dataset_name: "coco"
+  dataset_type: "cached_coco"
+  image_size: 512
+  limit_dataset_size: 100  # Small dataset
+  download_coco: true
+  batch_size: 1
+  edge_method: "canny"
+  canny_low: 50
+  canny_high: 150
+  edge_jitter: true
+  jitter_prob: 0.5
+
+logging:
+  log_interval: 5
+  save_interval: 25  # Save every 25 steps (so we get 2 checkpoints)
+  project_name: "scribble-diffusion-test"
+  run_name: "save-test"
+
+validation:
+  validation_steps: 25
+  num_validation_images: 2
+  guidance_scale: 7.5
+  num_inference_steps: 20
