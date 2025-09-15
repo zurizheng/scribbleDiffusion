@@ -41,19 +41,35 @@ echo "📍 Virtual env: $VIRTUAL_ENV"
 echo "⬆️ Upgrading pip in virtual environment..."
 python -m pip install --upgrade pip
 
+# Install NumPy first with proper version to avoid conflicts
+echo "📦 Installing NumPy with compatible version..."
+python -m pip install numpy==1.24.3
+
 # Install PyTorch with CUDA support for RTX 3090
 echo "🔥 Installing stable PyTorch 2.0.1 with CUDA 11.7 (detected CUDA 11.7.1)..."
 echo "📍 Using pip: $(which pip)"
 echo "📍 Using python: $(which python)"
 echo "📍 Virtual env: $VIRTUAL_ENV"
 
-# Install compatible versions that work together
-python -m pip install numpy==1.24.3  # Compatible with PyTorch 2.0.1
+# Install compatible versions that work together (no NumPy here since already installed)
 python -m pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu117
 
 # Check if PyTorch installed successfully
-echo "🔍 Checking PyTorch installation..."
+echo "🔍 Checking PyTorch and NumPy installation..."
 python -c "import sys; print('Python path:', sys.path[:3], '...')" 
+
+# Test NumPy first
+python -c "
+import numpy as np
+print(f'✅ NumPy version: {np.__version__}')
+arr = np.array([1, 2, 3])
+print(f'✅ NumPy working: {arr}')
+" || {
+    echo "❌ NumPy installation failed. Reinstalling..."
+    python -m pip uninstall numpy -y
+    python -m pip install numpy==1.24.3
+}
+
 python -c "import torch; print('✅ PyTorch imported successfully')" || {
     echo "❌ PyTorch installation failed. Checking what packages are installed..."
     python -m pip list | grep -i torch || echo "No torch packages found"
@@ -62,10 +78,19 @@ python -c "import torch; print('✅ PyTorch imported successfully')" || {
 }
 
 # Verify PyTorch CUDA installation immediately after install
-echo "✅ Verifying PyTorch CUDA installation..."
+echo "✅ Verifying PyTorch CUDA and NumPy compatibility..."
 python -c "
+import numpy as np
 import torch
+
+print(f'NumPy version: {np.__version__}')
 print(f'PyTorch version: {torch.__version__}')
+
+# Test NumPy-PyTorch interaction
+test_array = np.array([1.0, 2.0, 3.0])
+test_tensor = torch.from_numpy(test_array)
+print(f'✅ NumPy-PyTorch conversion working: {test_tensor}')
+
 print(f'CUDA available: {torch.cuda.is_available()}')
 print(f'CUDA version: {torch.version.cuda}')
 print(f'Expected CUDA: 11.7 (Container has CUDA 11.7.1)')
