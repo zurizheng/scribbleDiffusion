@@ -56,7 +56,7 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
         self.image_size = config.get("image_size", 512)
         
         # Setup paths
-        self.data_root = Path(config.get("data_root", "./data"))
+        self.data_root = Path(config.get("data_root", "/workspace/scribbleDiffusion/data"))
         self.coco_root = self.data_root / "coco"
         self.images_dir = self.coco_root / f"{split}2017"
         self.cache_dir = self.coco_root / "edges_cache"
@@ -339,7 +339,7 @@ def precompute_edges_script():
     from transformers import CLIPTokenizer
     
     parser = argparse.ArgumentParser(description="Precompute COCO edge detection cache")
-    parser.add_argument("--data_root", type=str, default="./data", help="Data root directory")
+    parser.add_argument("--data_root", type=str, default="/workspace/scribbleDiffusion/data", help="Data root directory")
     parser.add_argument("--image_size", type=int, default=512, help="Image size")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of images")
     parser.add_argument("--rebuild", action="store_true", help="Rebuild existing cache")
