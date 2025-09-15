@@ -1,0 +1,60 @@
+# Minimal RTX 3090 config for memory testing
+model:
+  unet:
+    sample_size: 256  # Reduced from 512
+    in_channels: 4
+    out_channels: 4
+    layers_per_block: 2
+    block_out_channels: [128, 128, 256, 256]  # Reduced from [320, 640, 1280, 1280]
+    down_block_types:
+      - "CrossAttnDownBlock2D"
+      - "CrossAttnDownBlock2D" 
+      - "CrossAttnDownBlock2D"
+      - "DownBlock2D"
+    up_block_types:
+      - "UpBlock2D"
+      - "CrossAttnUpBlock2D"
+      - "CrossAttnUpBlock2D"
+      - "CrossAttnUpBlock2D"
+    cross_attention_dim: 768
+    attention_head_dim: 8
+    use_linear_projection: true
+
+diffusion:
+  num_train_timesteps: 1000
+  beta_schedule: "scaled_linear"
+  prediction_type: "epsilon"
+  clip_sample: false
+
+training:
+  learning_rate: 1e-4
+  weight_decay: 0.01
+  epsilon: 1e-8
+  optimizer: "adamw"
+  max_train_steps: 1000  # Very short for testing
+  batch_size: 1
+  gradient_accumulation_steps: 8  # Reduced from 24
+  mixed_precision: "fp16"
+  gradient_clipping: 1.0
+  use_ema: false  # Disabled to save memory
+  ema_decay: 0.9999
+
+data:
+  dataset_name: "coco"
+  dataset_type: "coco"
+  image_size: 256  # Reduced from 512
+  limit_dataset_size: 100  # Very small for testing
+  download_coco: true
+  batch_size: 1
+
+logging:
+  log_interval: 5  # More frequent for testing
+  save_interval: 100
+  project_name: "scribble-diffusion-minimal"
+  run_name: "rtx3090-minimal-test"
+
+validation:
+  validation_steps: 50
+  num_validation_images: 2
+  guidance_scale: 7.5
+  num_inference_steps: 20

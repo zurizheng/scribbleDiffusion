@@ -54,7 +54,7 @@ training:
   epsilon: 1.0e-08
   mixed_precision: fp16  # Still beneficial for speed
   gradient_checkpointing: true   # Keep enabled for memory safety
-  use_ema: true   # Re-enable EMA - we have 3GB headroom
+  use_ema: false   # Disable EMA to save GPU memory (~6-8GB)
   ema_decay: 0.9999
   text_drop_prob: 0.1
   sketch_drop_prob: 0.1

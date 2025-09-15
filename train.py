@@ -140,7 +140,7 @@ def main():
     
     sketch_encoder = SketchCrossAttentionEncoder(
         in_channels=1,
-        hidden_dim=512,
+        hidden_dim=256,  # Reduced from 512 to save memory
         num_sketch_tokens=77,  # Match text sequence length
         cross_attention_dim=768,  # Match CLIP embedding dimension
     )
@@ -226,6 +226,15 @@ def main():
     unet, sketch_encoder, sketch_text_combiner, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
         unet, sketch_encoder, sketch_text_combiner, optimizer, train_dataloader, lr_scheduler
     )
+    
+    # Enable gradient checkpointing for memory savings
+    if hasattr(unet, 'enable_gradient_checkpointing'):
+        unet.enable_gradient_checkpointing()
+        logger.info("Enabled gradient checkpointing for UNet")
+    
+    if hasattr(sketch_encoder, 'enable_gradient_checkpointing'):
+        sketch_encoder.enable_gradient_checkpointing()
+        logger.info("Enabled gradient checkpointing for SketchEncoder")
     
     # Move frozen models to device
     vae.to(accelerator.device, dtype=torch.float32)
@@ -336,9 +345,12 @@ def main():
                 lr_scheduler.step()
                 optimizer.zero_grad()
                 
-                # Clear cache periodically to prevent fragmentation
-                if global_step % 50 == 0 and torch.cuda.is_available():
+                # Aggressive memory cleanup
+                del loss  # Delete loss tensor immediately
+                del model_pred, noise  # Delete intermediate tensors
+                if global_step % 10 == 0 and torch.cuda.is_available():
                     torch.cuda.empty_cache()
+                    torch.cuda.synchronize()  # Ensure cleanup completes
             
             # Update EMA and global step
             if accelerator.sync_gradients:
@@ -348,9 +360,9 @@ def main():
                     ema_sketch_text_combiner.step(sketch_text_combiner.parameters())
                 global_step += 1
                 
-                # Update progress bar
+                # Update progress bar (detach and move to CPU to avoid GPU accumulation)
                 if accelerator.is_main_process:
-                    current_loss = loss.detach().item()
+                    current_loss = loss.detach().cpu().item()  # Move to CPU immediately
                     recent_losses.append(current_loss)
                     if len(recent_losses) > max_recent_losses:
                         recent_losses.pop(0)
@@ -368,7 +380,7 @@ def main():
             
             # Logging (only on gradient sync steps to avoid spam)
             if accelerator.sync_gradients and global_step % config.logging.log_interval == 0:
-                current_loss = loss.detach().item()
+                current_loss = loss.detach().cpu().item()  # Move to CPU immediately
                 logs = {
                     "train_loss": current_loss,
                     "lr": lr_scheduler.get_last_lr()[0],
