@@ -296,6 +296,19 @@ def main():
                     model_path = f"{save_path}/pytorch_model.bin"
                     torch.save(checkpoint_dict, model_path)
                     print(f"✅ CHECKPOINT SAVED: {model_path}")
+                    
+                    # Clean up old checkpoints to save disk space (keep last 3)
+                    import glob
+                    import shutil
+                    checkpoint_pattern = f"{args.output_dir}/{config.logging.project_name}/checkpoint-*"
+                    all_checkpoints = sorted(glob.glob(checkpoint_pattern), 
+                                           key=lambda x: int(x.split('-')[-1]) if x.split('-')[-1].isdigit() else 0)
+                    
+                    if len(all_checkpoints) > 3:
+                        old_checkpoints = all_checkpoints[:-3]  # Keep last 3
+                        for old_checkpoint in old_checkpoints:
+                            print(f"🗑️ Removing old checkpoint: {old_checkpoint}")
+                            shutil.rmtree(old_checkpoint, ignore_errors=True)
 
             global_step += 1
             

@@ -56,7 +56,7 @@ data:
 
 logging:
   log_interval: 10
-  save_interval: 500
+  save_interval: 1000  # Save every 1000 steps to reduce disk usage
   project_name: "scribble-diffusion-cached"
   run_name: "rtx3090-cached-edges"
 
