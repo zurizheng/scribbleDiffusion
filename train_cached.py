@@ -280,7 +280,10 @@ def main():
             if global_step % config.logging.save_interval == 0:
                 if accelerator.is_main_process:
                     # Save checkpoint
-                    save_path = f"{config.logging.project_name}/checkpoint-{global_step}"
+                    save_path = f"outputs/{config.logging.project_name}/checkpoint-{global_step}"
+                    print(f"\n💾 SAVING CHECKPOINT at step {global_step}")
+                    print(f"📁 Location: {save_path}")
+                    
                     accelerator.save_state(save_path)
                     
                     # Also save just the model weights for easier export
@@ -291,6 +294,7 @@ def main():
                         'config': config.__dict__ if hasattr(config, '__dict__') else str(config)
                     }
                     torch.save(checkpoint_dict, f"{save_path}/pytorch_model.bin")
+                    print(f"✅ CHECKPOINT SAVED: {save_path}/pytorch_model.bin")
 
             global_step += 1
             
@@ -301,6 +305,23 @@ def main():
 
     # Final report
     if accelerator.is_main_process:
+        # Save final checkpoint
+        final_save_path = f"outputs/{config.logging.project_name}/checkpoint-{global_step}"
+        print(f"\n🎯 SAVING FINAL CHECKPOINT at step {global_step}")
+        print(f"📁 Location: {final_save_path}")
+        
+        accelerator.save_state(final_save_path)
+        
+        # Also save just the model weights for easier export
+        final_checkpoint_dict = {
+            'unet_state_dict': accelerator.get_state_dict(unet),
+            'sketch_encoder_state_dict': accelerator.get_state_dict(sketch_encoder),
+            'step': global_step,
+            'config': config.__dict__ if hasattr(config, '__dict__') else str(config)
+        }
+        torch.save(final_checkpoint_dict, f"{final_save_path}/pytorch_model.bin")
+        print(f"✅ FINAL CHECKPOINT SAVED: {final_save_path}/pytorch_model.bin")
+        
         total_time = time.time() - start_time
         avg_step_time = sum(step_times) / len(step_times) if step_times else 0
         
