@@ -23,7 +23,7 @@ from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
 
 from src.models.sketch_encoder import SketchCrossAttentionEncoder, SketchTextCombiner  
-from src.training.loss import DiffusionLoss
+from src.training.losses import DiffusionLoss
 from src.training.ema import EMAModel
 from src.utils.config import load_config
 

@@ -18,7 +18,7 @@ from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
 
 from src.models.sketch_encoder import SketchCrossAttentionEncoder, SketchTextCombiner  
-from src.training.loss import DiffusionLoss
+from src.training.losses import DiffusionLoss
 from src.utils.config import load_config
 from src.data.fast_coco_dataset import FastCOCOScribbleDataset  # Use fast dataset
 
