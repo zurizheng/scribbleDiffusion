@@ -68,11 +68,11 @@ def export_model(checkpoint_path, output_dir, format_type="safetensors"):
                 "transformer_depth": 2,
                 "context_dim": 768
             },
-            "hint_encoder": {
-                "in_channels": 1,
-                "hint_channels": [64, 128, 256, 512],
-                "injection_layers": [0, 1, 2, 3],
-                "injection_method": "add"
+            "sketch_encoder": {
+                "cross_attention_dim": 768,
+                "attention_head_dim": 8,
+                "num_attention_heads": 12,
+                "encoder_type": "cross_attention"
             }
         },
         "training_info": {
@@ -109,20 +109,20 @@ ScribbleDiffusion is a lightweight ControlNet variant that generates high-qualit
 
 ## Architecture
 
-- **UNet**: {config['architecture']['unet']['model_channels']} base channels with attention
-- **HintEncoder**: Lightweight sketch encoder with {len(config['architecture']['hint_encoder']['hint_channels'])} levels
+- **UNet**: Cross-attention enabled diffusion model with sketch conditioning
+- **SketchEncoder**: Cross-attention sketch encoder with {config['architecture']['sketch_encoder']['num_attention_heads']} attention heads
 - **Training Steps**: {config['training_info']['steps_trained']:,}
 
 ## Usage
 
 ```python
 import torch
-from src.models.unet import SketchConditionedUNet
-from src.models.hint_encoder import HintEncoder
+from src.models.unet import UNet2DConditionModel
+from src.models.sketch_encoder import SketchCrossAttentionEncoder
 
 # Load models
-unet = SketchConditionedUNet.from_pretrained("./unet.safetensors")
-hint_encoder = HintEncoder.from_pretrained("./hint_encoder.safetensors")
+unet = UNet2DConditionModel.from_pretrained("./unet.safetensors")
+sketch_encoder = SketchCrossAttentionEncoder.from_pretrained("./sketch_encoder.safetensors")
 
 # Generate image from sketch
 # (Add your inference code here)
@@ -146,13 +146,13 @@ Apache 2.0
     
     # Calculate model sizes
     unet_size = os.path.getsize(output_dir / f"unet.{format_type.split('_')[0]}")
-    hint_size = os.path.getsize(output_dir / f"hint_encoder.{format_type.split('_')[0]}")
-    total_size = unet_size + hint_size
+    sketch_size = os.path.getsize(output_dir / f"sketch_encoder.{format_type.split('_')[0]}")
+    total_size = unet_size + sketch_size
     
     print(f"✅ Export completed!")
     print(f"📊 Model sizes:")
     print(f"   UNet: {unet_size / 1e6:.1f} MB")
-    print(f"   HintEncoder: {hint_size / 1e6:.1f} MB")
+    print(f"   SketchEncoder: {sketch_size / 1e6:.1f} MB")
     print(f"   Total: {total_size / 1e6:.1f} MB")
     print(f"📁 Saved to: {output_dir}")
     
