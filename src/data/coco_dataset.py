@@ -288,8 +288,8 @@ echo "Total size: ~19GB"
             # Fallback for demo data
             image_ids = [img['id'] for img in self.coco['images']]
         
-        # Limit dataset size for training efficiency
-        max_images = self.config.get("max_images", None)
+        # Limit dataset size for training efficiency and memory management
+        max_images = self.config.get("max_images", 5000)  # Default to smaller subset
         if max_images and len(image_ids) > max_images:
             random.shuffle(image_ids)
             image_ids = image_ids[:max_images]

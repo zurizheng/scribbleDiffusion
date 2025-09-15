@@ -65,10 +65,10 @@ training:
 data:
   dataset_type: coco
   coco_root: ./data/coco
-  image_size: 128  # Very small for memory testing, can increase later
+  image_size: 256  # Back to reasonable size for better quality
   train_split: train
   validation_split: val
-  max_images: 150000  # Use more data with powerful GPU
+  max_images: 1000  # Start with small subset for memory testing
   random_crop: true
   random_flip: true
   normalize: true
