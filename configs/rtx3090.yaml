@@ -98,8 +98,8 @@ logging:
   project_name: scribble-diffusion-rtx3090
   run_name: high_capacity_training
   log_with: "tensorboard"  # Can also use "wandb" with better hardware
-  log_interval: 50  # More frequent logging
-  save_interval: 2000  # More frequent checkpoints
+  log_interval: 100  # Less frequent logging to reduce spam
+  save_interval: 5000  # Less frequent checkpoints (every 5k steps)
 
 # Output Configuration
 paths:

@@ -366,16 +366,19 @@ def main():
                     })
                     progress_bar.update(1)
             
-            # Logging
-            if global_step % config.logging.log_interval == 0:
+            # Logging (only on gradient sync steps to avoid spam)
+            if accelerator.sync_gradients and global_step % config.logging.log_interval == 0:
+                current_loss = loss.detach().item()
                 logs = {
-                    "train_loss": loss.detach().item(),
+                    "train_loss": current_loss,
                     "lr": lr_scheduler.get_last_lr()[0],
                     "step": global_step,
                     "epoch": epoch,
                 }
                 accelerator.log(logs, step=global_step)
-                logger.info(f"Step {global_step}: Loss = {loss.detach().item():.4f}")
+                # Don't duplicate the loss logging since progress bar shows it
+                if global_step % (config.logging.log_interval * 5) == 0:  # Less frequent console logs
+                    logger.info(f"Step {global_step}: Loss = {current_loss:.4f}")
             
             # Validation (temporarily disabled for Phase 2)
             if False and global_step % config.validation.validation_steps == 0:
@@ -400,8 +403,8 @@ def main():
                 )
                 accelerator.log(validation_logs, step=global_step)
             
-            # Save checkpoint
-            if global_step % config.logging.save_interval == 0:
+            # Save checkpoint (skip step 0 to avoid spam)
+            if global_step > 0 and global_step % config.logging.save_interval == 0:
                 if accelerator.is_main_process:
                     save_path = Path(config.paths.output_dir) / f"checkpoint-{global_step}"
                     accelerator.save_state(save_path)
