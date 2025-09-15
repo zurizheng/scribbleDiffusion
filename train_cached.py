@@ -261,9 +261,8 @@ def main():
                 
                 progress_bar.set_postfix({
                     'loss': f'{current_loss:.4f}',
-                    'step_time': f'{step_time:.1f}s',
-                    'avg_time': f'{avg_step_time:.1f}s', 
-                    'memory': f'{memory_gb:.1f}GB'
+                    'time': f'{step_time:.1f}s',
+                    'mem': f'{memory_gb:.1f}GB'
                 })
                 progress_bar.update(1)
                 
