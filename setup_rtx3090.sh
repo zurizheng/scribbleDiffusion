@@ -7,6 +7,11 @@ set -e  # Exit on any error
 echo "🚀 Setting up ScribbleDiffusion for RTX 3090 24GB VRAM"
 echo "=" * 60
 
+# Install system dependencies for OpenCV and graphics
+echo "📦 Installing system dependencies..."
+apt-get update -qq
+apt-get install -y -qq libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 libgtk-3-dev
+
 # Check if we're in the right directory
 if [ ! -f "train.py" ]; then
     echo "❌ Error: train.py not found. Please run this script from the ScribbleDiffusion directory."
@@ -141,11 +146,13 @@ echo "Skipping requirements.txt to avoid version conflicts..."
 # python -m pip install -r requirements.txt
 
 # Install only essential additional packages manually
-python -m pip install tqdm omegaconf safetensors einops Pillow opencv-python
+echo "Installing OpenCV headless version..."
+python -m pip install opencv-python-headless  # Use headless version for RunPod
+python -m pip install tqdm omegaconf safetensors einops Pillow
 
 # Install development tools
 echo "🛠️ Installing development tools..."
-python -m pip install tensorboard wandb opencv-python pillow numpy scipy matplotlib
+python -m pip install tensorboard wandb pillow numpy scipy matplotlib
 
 # Test diffusers installation
 echo "🧪 Testing diffusers installation..."
@@ -230,6 +237,6 @@ echo "To monitor training:"
 echo "  tensorboard --logdir logs/rtx3090"
 echo ""
 echo "💡 Don't forget to download COCO dataset if training on real data:"
-echo "  bash data/coco/download_coco.sh"
+echo "  bash scripts/download_coco.sh"
 echo ""
 echo "Happy training! 🔥"
