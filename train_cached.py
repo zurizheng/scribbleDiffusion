@@ -281,8 +281,8 @@ def main():
                 if accelerator.is_main_process:
                     # Save checkpoint
                     save_path = f"outputs/{config.logging.project_name}/checkpoint-{global_step}"
-                    print(f"\n💾 SAVING CHECKPOINT at step {global_step}")
-                    print(f"📁 Location: {save_path}")
+                    print(f"\n SAVING CHECKPOINT at step {global_step}")
+                    print(f" Location: {save_path}")
                     
                     accelerator.save_state(save_path)
                     
@@ -307,8 +307,8 @@ def main():
     if accelerator.is_main_process:
         # Save final checkpoint
         final_save_path = f"outputs/{config.logging.project_name}/checkpoint-{global_step}"
-        print(f"\n🎯 SAVING FINAL CHECKPOINT at step {global_step}")
-        print(f"📁 Location: {final_save_path}")
+        print(f"\n SAVING FINAL CHECKPOINT at step {global_step}")
+        print(f" Location: {final_save_path}")
         
         accelerator.save_state(final_save_path)
         
