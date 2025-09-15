@@ -220,7 +220,7 @@ def main():
                 profiler.step()
                 
                 with MemoryProfileContext(profiler, f"BATCH_{step}"):
-                    with accelerator.accumulate(unet, sketch_encoder, sketch_text_combiner):
+                    with accelerator.accumulate(unet):
                         
                         # Get batch data
                         with MemoryProfileContext(profiler, "GET_BATCH_DATA"):

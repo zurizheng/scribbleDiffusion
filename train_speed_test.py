@@ -188,7 +188,7 @@ def main():
         for step, batch in enumerate(train_dataloader):
             step_start_time = time.time()
             
-            with accelerator.accumulate(unet, sketch_encoder, sketch_text_combiner):
+            with accelerator.accumulate(unet):
                 
                 # Get batch data
                 images = batch["images"].to(accelerator.device)
