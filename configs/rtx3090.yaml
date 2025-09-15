@@ -14,7 +14,7 @@ model:
     use_spatial_transformer: true
     transformer_depth: 2  # Deeper transformers for better text conditioning
     context_dim: 768  # Standard CLIP
-    use_checkpoint: false  # Disable checkpointing for speed (plenty of VRAM)
+    use_checkpoint: true  # Enable checkpointing for memory safety
     
   # Sketch Conditioning (ControlNet-lite) - Enhanced for high-capacity training
   hint_encoder:
@@ -41,8 +41,8 @@ diffusion:
   
 # Memory-Optimized Training Configuration for RTX 3090
 training:
-  batch_size: 6   # Reduced from 12 for memory safety
-  gradient_accumulation_steps: 6  # Effective batch size still 36
+  batch_size: 2   # Further reduced for memory safety
+  gradient_accumulation_steps: 12  # Maintain effective batch size of 24
   learning_rate: 0.0001
   lr_scheduler: cosine_with_restarts
   num_warmup_steps: 1000
@@ -65,7 +65,7 @@ training:
 data:
   dataset_type: coco
   coco_root: ./data/coco
-  image_size: 512  # Higher resolution for RTX 3090
+  image_size: 384  # Reduced for initial training stability
   train_split: train
   validation_split: val
   max_images: 150000  # Use more data with powerful GPU
