@@ -92,19 +92,15 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
         # Load or create cache
         self._setup_cache()
         
-        print(f"CachedCOCO dataset ready: {len(self.image_files)} images")
-        if hasattr(self, 'cached_count'):
-            print(f"Cache status: {self.cached_count}/{len(self.image_files)} images cached")
+        # Count cached files
+        self.cached_count = len(list(self.split_cache_dir.glob("*.npy")))
     
     def _setup_cache(self):
         """Setup edge detection cache."""
         # Check if cache needs rebuilding
         if self.rebuild_cache or not self._is_cache_valid():
-            print("🔄 Building edge detection cache...")
             self._build_cache()
-        else:
-            print("✅ Using existing edge detection cache")
-            
+        
         # Count cached files
         self.cached_count = len(list(self.split_cache_dir.glob("*.npy")))
     
@@ -134,7 +130,6 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
             cached_hash = metadata.get('settings_hash', '')
             
             if current_hash != cached_hash:
-                print(f"🔄 Cache settings changed, rebuilding...")
                 return False
                 
             # Check if all images are cached
@@ -144,19 +139,15 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
             if cached_files != current_files:
                 missing = current_files - cached_files
                 if missing:
-                    print(f"🔄 Missing {len(missing)} cached images, rebuilding...")
-                return False
+                    return False
                 
             return True
             
         except Exception as e:
-            print(f"⚠️  Error reading cache metadata: {e}")
             return False
     
     def _build_cache(self):
         """Build edge detection cache."""
-        print(f"Caching edge detection for {len(self.image_files)} images...")
-        
         cached_files = []
         
         # Process images in batches with progress bar
@@ -180,7 +171,6 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
                     cached_files.append(image_file.stem)
                     
                 except Exception as e:
-                    print(f"❌ Error caching {image_file.name}: {e}")
                     continue
         
         # Save metadata
@@ -198,8 +188,6 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
         
         with open(self.metadata_file, 'w') as f:
             json.dump(metadata, f, indent=2)
-            
-        print(f"✅ Cache built: {len(cached_files)} images cached")
     
     def _detect_edges(self, image: np.ndarray) -> np.ndarray:
         """Detect edges in image using specified method."""
@@ -264,7 +252,6 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
                 edges = np.load(cache_file)
             else:
                 # Fallback: compute on-the-fly (SLOW!)
-                print(f"⚠️  Cache miss for {image_id}, computing edges on-the-fly")
                 image_np = np.array(image)
                 edges = self._detect_edges(image_np)
             
@@ -301,7 +288,6 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
             }
             
         except Exception as e:
-            print(f"Error loading sample {idx}: {e}")
             # Return dummy sample
             return {
                 "images": torch.randn(3, self.image_size, self.image_size) * 0.5,
@@ -330,7 +316,6 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
         import shutil
         if self.cache_dir.exists():
             shutil.rmtree(self.cache_dir)
-            print(f"🗑️  Cleared cache: {self.cache_dir}")
 
 
 def precompute_edges_script():

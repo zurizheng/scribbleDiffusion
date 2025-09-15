@@ -50,19 +50,17 @@ def main():
     
     if accelerator.is_main_process:
         logging.basicConfig(
-            format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-            datefmt="%m/%d/%Y %H:%M:%S",
-            level=logging.INFO,
+            format="%(message)s",  # Simplified format
+            level=logging.WARNING,  # Only show warnings and errors
         )
-    logger.info(accelerator.state, main_process_only=False)
+    # Don't log accelerator state to avoid spam
+    # logger.info(accelerator.state, main_process_only=False)
     
     # Set random seed
     if config.training.get("seed"):
         set_seed(config.training.seed)
 
     # Load pretrained models
-    logger.info("Loading pretrained models...")
-    
     vae = AutoencoderKL.from_pretrained("runwayml/stable-diffusion-v1-5", subfolder="vae")
     vae.requires_grad_(False)
     vae.eval()
@@ -74,7 +72,6 @@ def main():
     tokenizer = CLIPTokenizer.from_pretrained("runwayml/stable-diffusion-v1-5", subfolder="tokenizer")
 
     # Initialize UNet
-    logger.info("Initializing UNet...")
     unet = UNet2DConditionModel(
         sample_size=config.model.unet.sample_size,
         in_channels=config.model.unet.in_channels,
@@ -91,7 +88,6 @@ def main():
     unet.train()
 
     # Initialize sketch encoder
-    logger.info("Initializing sketch encoder...")
     sketch_encoder = SketchCrossAttentionEncoder(
         in_channels=1,
         hidden_dim=512,
@@ -118,7 +114,6 @@ def main():
     )
 
     # Setup optimizer
-    logger.info("Setting up optimizer...")
     trainable_params = list(unet.parameters()) + list(sketch_encoder.parameters()) + list(sketch_text_combiner.parameters())
     
     optimizer = torch.optim.AdamW(
@@ -129,7 +124,6 @@ def main():
     )
 
     # Setup dataset with cached edges
-    logger.info("Setting up cached COCO dataset...")
     train_dataset = CachedCOCOScribbleDataset(
         config=config.data,
         tokenizer=tokenizer,
@@ -140,11 +134,6 @@ def main():
     
     # Show cache information
     cache_info = train_dataset.get_cache_info()
-    logger.info(f"📊 Cache Info:")
-    logger.info(f"   Cache directory: {cache_info['cache_dir']}")
-    logger.info(f"   Cached images: {cache_info['cached_images']}/{cache_info['total_images']}")
-    logger.info(f"   Cache size: {cache_info['cache_size_mb']:.1f} MB")
-    logger.info(f"   Coverage: {cache_info['cache_coverage']:.1%}")
     
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset,
@@ -166,7 +155,6 @@ def main():
     loss_fn = DiffusionLoss(config.training)
 
     # Prepare everything with accelerator
-    logger.info("Preparing models with accelerator...")
     unet, sketch_encoder, sketch_text_combiner, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
         unet, sketch_encoder, sketch_text_combiner, optimizer, train_dataloader, lr_scheduler
     )
@@ -174,14 +162,12 @@ def main():
     # Enable gradient checkpointing
     if hasattr(unet, 'enable_gradient_checkpointing'):
         unet.enable_gradient_checkpointing()
-        logger.info("Enabled UNet gradient checkpointing")
 
     # Move frozen models to device
     vae.to(accelerator.device, dtype=torch.float32)
     text_encoder.to(accelerator.device, dtype=torch.float32)
 
     # Training loop with timing
-    logger.info("Starting training with cached edges...")
     global_step = 0
     epoch = 0
     
@@ -281,20 +267,15 @@ def main():
                 })
                 progress_bar.update(1)
                 
-                # Log detailed info
-                if global_step % config.logging.log_interval == 0:
+                # Log detailed info (suppress most output to avoid progress bar interference)
+                if global_step % (config.logging.log_interval * 5) == 0:  # Log less frequently
                     total_time = time.time() - start_time
                     steps_per_sec = global_step / total_time if total_time > 0 else 0
                     eta_seconds = (config.training.max_train_steps - global_step) / steps_per_sec if steps_per_sec > 0 else 0
                     eta_minutes = eta_seconds / 60
                     
-                    logger.info(f"Step {global_step}/{config.training.max_train_steps} | "
-                              f"Loss: {current_loss:.4f} | "
-                              f"Step time: {step_time:.2f}s | "
-                              f"Avg: {avg_step_time:.2f}s | "
-                              f"Recent: {recent_avg:.2f}s | "
-                              f"ETA: {eta_minutes:.1f}min | "
-                              f"Memory: {memory_gb:.1f}GB")
+                    # Only log occasionally to avoid interfering with progress bar
+                    pass
 
             global_step += 1
             
@@ -306,13 +287,14 @@ def main():
     # Final report
     if accelerator.is_main_process:
         total_time = time.time() - start_time
-        avg_step_time = sum(step_times) / len(step_times)
+        avg_step_time = sum(step_times) / len(step_times) if step_times else 0
         
-        logger.info(f"🏁 Training complete!")
-        logger.info(f"   Total time: {total_time:.1f}s ({total_time/60:.1f} minutes)")
-        logger.info(f"   Total steps: {len(step_times)}")
-        logger.info(f"   Average step time: {avg_step_time:.2f}s")
-        logger.info(f"   Steps per second: {len(step_times)/total_time:.2f}")
+        print(f"\nTraining complete!")
+        print(f"Total time: {total_time:.1f}s ({total_time/60:.1f} minutes)")
+        print(f"Total steps: {len(step_times)}")
+        print(f"Average step time: {avg_step_time:.2f}s")
+        if total_time > 0:
+            print(f"Steps per second: {len(step_times)/total_time:.2f}")
 
 
 if __name__ == "__main__":
