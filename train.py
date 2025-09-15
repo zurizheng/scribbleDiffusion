@@ -257,6 +257,19 @@ def main():
     logger.info("Starting training...")
     global_step = 0
     
+    # Create progress bar for total steps
+    if accelerator.is_main_process:
+        progress_bar = tqdm(
+            total=config.training.max_train_steps,
+            desc="Training",
+            unit="step",
+            ncols=120,
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}] {postfix}"
+        )
+        # Initialize loss tracking
+        recent_losses = []
+        max_recent_losses = 100  # Track last 100 losses for smoothing
+    
     for epoch in range(1000):  # Large number, we'll break based on max_train_steps
         for step, batch in enumerate(train_dataloader):
             with accelerator.accumulate(unet):
@@ -317,13 +330,31 @@ def main():
                 lr_scheduler.step()
                 optimizer.zero_grad()
             
-            # Update EMA
+            # Update EMA and global step
             if accelerator.sync_gradients:
                 if config.training.use_ema:
                     ema_unet.step(unet.parameters())
                     ema_sketch_encoder.step(sketch_encoder.parameters())
                     ema_sketch_text_combiner.step(sketch_text_combiner.parameters())
                 global_step += 1
+                
+                # Update progress bar
+                if accelerator.is_main_process:
+                    current_loss = loss.detach().item()
+                    recent_losses.append(current_loss)
+                    if len(recent_losses) > max_recent_losses:
+                        recent_losses.pop(0)
+                    
+                    avg_loss = sum(recent_losses) / len(recent_losses)
+                    lr = lr_scheduler.get_last_lr()[0]
+                    
+                    progress_bar.set_postfix({
+                        'loss': f'{current_loss:.4f}',
+                        'avg_loss': f'{avg_loss:.4f}',
+                        'lr': f'{lr:.2e}',
+                        'epoch': epoch
+                    })
+                    progress_bar.update(1)
             
             # Logging
             if global_step % config.logging.log_interval == 0:
@@ -368,6 +399,8 @@ def main():
             
             # Check if we've reached max steps
             if global_step >= config.training.max_train_steps:
+                if accelerator.is_main_process:
+                    progress_bar.close()
                 break
         
         if global_step >= config.training.max_train_steps:
@@ -375,6 +408,8 @@ def main():
     
     # Final save
     if accelerator.is_main_process:
+        if 'progress_bar' in locals():
+            progress_bar.close()
         final_save_path = Path(config.paths.output_dir) / "final_model"
         accelerator.save_state(final_save_path)
         logger.info(f"Training completed. Final model saved to {final_save_path}")
