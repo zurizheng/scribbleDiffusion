@@ -286,7 +286,7 @@ def main():
                     # Also save just the model weights for easier export
                     checkpoint_dict = {
                         'unet_state_dict': accelerator.get_state_dict(unet),
-                        'hint_encoder_state_dict': accelerator.get_state_dict(hint_encoder),
+                        'sketch_encoder_state_dict': accelerator.get_state_dict(sketch_encoder),
                         'step': global_step,
                         'config': config.__dict__ if hasattr(config, '__dict__') else str(config)
                     }
