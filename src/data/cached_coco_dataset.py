@@ -53,6 +53,7 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
         self.canny_high = config.get("canny_high", 150)
         self.edge_jitter = config.get("edge_jitter", True)
         self.jitter_prob = config.get("jitter_prob", 0.5)
+        self.image_size = config.get("image_size", 512)
         
         # Setup paths
         self.data_root = Path(config.get("data_root", "./data"))
@@ -68,7 +69,7 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
         
         # Image transforms
         self.image_transform = transforms.Compose([
-            transforms.Resize((config.image_size, config.image_size)),
+            transforms.Resize((self.image_size, self.image_size)),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5])  # Normalize to [-1, 1]
         ])
@@ -113,7 +114,7 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
             'edge_method': self.edge_method,
             'canny_low': self.canny_low,
             'canny_high': self.canny_high,
-            'image_size': self.config.image_size,
+            'image_size': self.image_size,
             'split': self.split,
         }
         settings_str = json.dumps(settings, sort_keys=True)
@@ -190,7 +191,7 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
                 'edge_method': self.edge_method,
                 'canny_low': self.canny_low,
                 'canny_high': self.canny_high,
-                'image_size': self.config.image_size,
+                'image_size': self.image_size,
             },
             'created_at': str(torch.utils.data.get_worker_info() or 'main'),
         }
@@ -275,8 +276,8 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
             edges_tensor = transforms.ToTensor()(edges_pil)
             
             # Resize edges to match expected size
-            if edges_tensor.shape[-1] != self.config.image_size:
-                edges_tensor = transforms.Resize((self.config.image_size, self.config.image_size))(edges_tensor)
+            if edges_tensor.shape[-1] != self.image_size:
+                edges_tensor = transforms.Resize((self.image_size, self.image_size))(edges_tensor)
             
             # Generate dummy caption for now
             caption = f"an image from COCO dataset"
@@ -303,8 +304,8 @@ class CachedCOCOScribbleDataset(torch.utils.data.Dataset):
             print(f"Error loading sample {idx}: {e}")
             # Return dummy sample
             return {
-                "images": torch.randn(3, self.config.image_size, self.config.image_size) * 0.5,
-                "sketches": torch.rand(1, self.config.image_size, self.config.image_size) > 0.95,
+                "images": torch.randn(3, self.image_size, self.image_size) * 0.5,
+                "sketches": torch.rand(1, self.image_size, self.image_size) > 0.95,
                 "input_ids": torch.zeros(77, dtype=torch.long),
                 "attention_mask": torch.ones(77, dtype=torch.long),
                 "caption": "dummy image",
