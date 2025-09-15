@@ -124,7 +124,7 @@ def main():
         out_channels=config.model.unet.out_channels,
         down_block_types=("CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "DownBlock2D"),
         up_block_types=("UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D"),
-        block_out_channels=(320, 640, 1280, 1280),
+        block_out_channels=(320, 640, 1280, 1280),  # Keep standard SD 1.5 channels
         layers_per_block=2,
         attention_head_dim=8,
         norm_num_groups=32,
@@ -257,6 +257,12 @@ def main():
     logger.info("Starting training...")
     global_step = 0
     
+    # Set PyTorch memory management for better fragmentation handling
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        # Set memory fraction to prevent fragmentation
+        torch.cuda.set_per_process_memory_fraction(0.95)
+    
     # Create progress bar for total steps
     if accelerator.is_main_process:
         progress_bar = tqdm(
@@ -329,6 +335,10 @@ def main():
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
+                
+                # Clear cache periodically to prevent fragmentation
+                if global_step % 50 == 0 and torch.cuda.is_available():
+                    torch.cuda.empty_cache()
             
             # Update EMA and global step
             if accelerator.sync_gradients:

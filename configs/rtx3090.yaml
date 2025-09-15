@@ -2,17 +2,17 @@
 # Optimized for quality and speed with ample memory resources
 
 model:
-  # U-Net Architecture - High-capacity for RTX 3090 24GB VRAM
+  # U-Net Architecture - Keep standard SD 1.5 compatibility
   unet:
     in_channels: 4  # VAE latent channels
     out_channels: 4
     model_channels: 320  # Standard SD 1.5 base channels
-    attention_resolutions: [1, 2, 4, 8]  # Enhanced attention at all scales
+    attention_resolutions: [1, 2, 4, 8]  # Standard attention levels
     num_res_blocks: 2  # Standard depth for quality
     channel_mult: [1, 2, 4, 4]  # Standard SD progression: 320, 640, 1280, 1280
     num_heads: 8  # Full attention heads
     use_spatial_transformer: true
-    transformer_depth: 2  # Deeper transformers for better text conditioning
+    transformer_depth: 2  # Standard transformer depth
     context_dim: 768  # Standard CLIP
     use_checkpoint: true  # Enable checkpointing for memory safety
     
@@ -41,8 +41,8 @@ diffusion:
   
 # Memory-Optimized Training Configuration for RTX 3090
 training:
-  batch_size: 2   # Further reduced for memory safety
-  gradient_accumulation_steps: 12  # Maintain effective batch size of 24
+  batch_size: 1   # Minimal batch size for memory safety
+  gradient_accumulation_steps: 24  # Maintain effective batch size of 24
   learning_rate: 0.0001
   lr_scheduler: cosine_with_restarts
   num_warmup_steps: 1000
@@ -65,7 +65,7 @@ training:
 data:
   dataset_type: coco
   coco_root: ./data/coco
-  image_size: 384  # Reduced for initial training stability
+  image_size: 128  # Very small for memory testing, can increase later
   train_split: train
   validation_split: val
   max_images: 150000  # Use more data with powerful GPU
