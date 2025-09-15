@@ -5,7 +5,7 @@ model:
     in_channels: 4
     out_channels: 4
     layers_per_block: 1  # Minimal depth
-    block_out_channels: [64, 64, 128, 128]  # Very small
+    block_out_channels: [64, 128]  # Match the 2 down_block_types
     down_block_types:
       - "CrossAttnDownBlock2D"
       - "DownBlock2D"
