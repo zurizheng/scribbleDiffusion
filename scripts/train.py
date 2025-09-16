@@ -29,11 +29,11 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import yaml
 from omegaconf import OmegaConf
+from safetensors.torch import save_file
 
 # Import our models and utilities
 from src.models.unet import SketchConditionedUNet
 from src.models.hint_encoder import HintEncoder  
-from src.data.dataset import SketchImageDataset
 from src.training.losses import DiffusionLoss
 from src.utils.device_utils import clear_device_cache, synchronize_device, set_memory_fraction, get_device_memory_gb
 from accelerate import Accelerator
@@ -47,7 +47,6 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer
 
-from src.data.dataset import ScribbleDataset
 from src.training.losses import DiffusionLoss
 from src.training.ema import EMAModel
 from src.utils.validation import validate_model
@@ -57,6 +56,50 @@ from src.utils.logging import setup_logging
 check_min_version("0.18.0")
 
 logger = get_logger(__name__)
+
+
+def save_model_checkpoint(unet, sketch_encoder, sketch_text_combiner, output_dir, step, accelerator):
+    """Save all model components properly"""
+    
+    save_dir = Path(output_dir) / f"checkpoint-{step}"
+    save_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Get unwrapped models from accelerator
+    unwrapped_unet = accelerator.unwrap_model(unet)
+    unwrapped_sketch_encoder = accelerator.unwrap_model(sketch_encoder)
+    unwrapped_sketch_text_combiner = accelerator.unwrap_model(sketch_text_combiner)
+    
+    # Save UNet
+    unet_state = unwrapped_unet.state_dict()
+    unet_path = save_dir / "unet.safetensors"
+    save_file(unet_state, unet_path)
+    
+    # Save Sketch Encoder
+    sketch_encoder_state = unwrapped_sketch_encoder.state_dict()
+    sketch_encoder_path = save_dir / "sketch_encoder.safetensors"
+    save_file(sketch_encoder_state, sketch_encoder_path)
+    
+    # Save Sketch Text Combiner (THE MISSING PIECE!)
+    combiner_state = unwrapped_sketch_text_combiner.state_dict()
+    combiner_path = save_dir / "sketch_text_combiner.safetensors"
+    save_file(combiner_state, combiner_path)
+    
+    # Save training info
+    training_info = {
+        "step": step,
+        "model_components": ["unet", "sketch_encoder", "sketch_text_combiner"]
+    }
+    
+    import json
+    with open(save_dir / "training_info.json", "w") as f:
+        json.dump(training_info, f, indent=2)
+    
+    logger.info(f"✅ Saved complete model checkpoint to {save_dir}")
+    logger.info(f"   - UNet: {unet_path}")
+    logger.info(f"   - Sketch Encoder: {sketch_encoder_path}")
+    logger.info(f"   - Sketch Text Combiner: {combiner_path}")
+    
+    return save_dir
 
 
 def parse_args():
@@ -124,10 +167,12 @@ def main():
     
     tokenizer = CLIPTokenizer.from_pretrained(
         config.model.text_encoder.model_name,
+        subfolder="tokenizer",
         cache_dir=config.paths.cache_dir,
     )
     text_encoder = CLIPTextModel.from_pretrained(
         config.model.text_encoder.model_name,
+        subfolder=config.model.text_encoder.subfolder,
         cache_dir=config.paths.cache_dir,
     )
     text_encoder.requires_grad_(False)
@@ -204,8 +249,10 @@ def main():
     # Setup dataset and dataloader
     logger.info("Setting up dataset...")
     
-    # Check if using COCO dataset
-    if config.data.get("dataset_type") == "coco" or config.data.dataset_name == "coco":
+    # Check dataset type
+    dataset_type = config.data.get("dataset_type", "default")
+    
+    if dataset_type == "coco" or config.data.get("dataset_name") == "coco":
         from src.data.coco_dataset import COCOScribbleDataset
         train_dataset = COCOScribbleDataset(
             config=config.data,
@@ -213,6 +260,14 @@ def main():
             split="train",
             download=config.data.get("download_coco", True),
         )
+    elif dataset_type == "fruit":
+        from src.data.fruit_dataset import FruitDataset
+        train_dataset = FruitDataset(
+            data_dir=config.data.data_dir,
+            image_size=config.data.get("image_size", 256),
+            create_sketches=True
+        )
+        logger.info(f"✅ Loaded fruit dataset: {len(train_dataset)} images")
     else:
         from src.data.dataset import ScribbleDataset
         train_dataset = ScribbleDataset(
@@ -304,10 +359,26 @@ def main():
     for epoch in range(1000):  # Large number, we'll break based on max_train_steps
         for step, batch in enumerate(train_dataloader):
             with accelerator.accumulate(unet):
-                # Get batch data
-                images = batch["images"]
-                sketches = batch["sketches"]
-                input_ids = batch["input_ids"]
+                # Handle different dataset formats
+                if isinstance(batch, dict) and "image" in batch:
+                    # Fruit dataset format
+                    images = batch["image"]
+                    sketches = batch["sketch"] 
+                    
+                    # Convert text prompts to tokens
+                    text_prompts = batch["text_prompt"]
+                    input_ids = tokenizer(
+                        text_prompts,
+                        padding="max_length",
+                        max_length=tokenizer.model_max_length,
+                        truncation=True,
+                        return_tensors="pt"
+                    ).input_ids.to(accelerator.device)
+                else:
+                    # Original dataset format
+                    images = batch["images"]
+                    sketches = batch["sketches"]
+                    input_ids = batch["input_ids"]
                 
                 # Encode images to latents
                 with torch.no_grad():
@@ -434,9 +505,15 @@ def main():
             # Save checkpoint (skip step 0 to avoid spam)
             if global_step > 0 and global_step % config.logging.save_interval == 0:
                 if accelerator.is_main_process:
-                    save_path = Path(config.paths.output_dir) / f"checkpoint-{global_step}"
-                    accelerator.save_state(save_path)
-                    logger.info(f"Saved checkpoint to {save_path}")
+                    # Save proper model checkpoint with all components
+                    save_model_checkpoint(
+                        unet, sketch_encoder, sketch_text_combiner,
+                        config.paths.output_dir, global_step, accelerator
+                    )
+                    
+                    # Also save accelerator state for resuming
+                    accelerator_save_path = Path(config.paths.output_dir) / f"accelerator-{global_step}"
+                    accelerator.save_state(accelerator_save_path)
             
             # Check if we've reached max steps
             if global_step >= config.training.max_train_steps:
@@ -451,9 +528,20 @@ def main():
     if accelerator.is_main_process:
         if 'progress_bar' in locals():
             progress_bar.close()
-        final_save_path = Path(config.paths.output_dir) / "final_model"
-        accelerator.save_state(final_save_path)
-        logger.info(f"Training completed. Final model saved to {final_save_path}")
+        
+        # Save final complete model
+        final_save_path = save_model_checkpoint(
+            unet, sketch_encoder, sketch_text_combiner,
+            config.paths.output_dir, global_step, accelerator
+        )
+        
+        # Also save final accelerator state
+        final_accelerator_path = Path(config.paths.output_dir) / "final_accelerator"
+        accelerator.save_state(final_accelerator_path)
+        
+        logger.info(f"🎉 Training completed!")
+        logger.info(f"📁 Final model saved to: {final_save_path}")
+        logger.info(f"📁 All components saved: UNet, SketchEncoder, SketchTextCombiner")
     
     accelerator.end_training()
 

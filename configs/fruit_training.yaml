@@ -1,0 +1,87 @@
+# Configuration for training ScribbleDiffusion on fruit dataset
+# This config is optimized for your 11k fruit images
+
+model:
+  unet:
+    in_channels: 4
+    out_channels: 4
+    model_channels: 320
+    use_linear_projection: false  # Use conv projections for compatibility
+  
+  sketch_encoder:
+    in_channels: 1
+    hidden_dim: 256
+    num_sketch_tokens: 77
+    cross_attention_dim: 768
+  
+  vae:
+    model_name: "runwayml/stable-diffusion-v1-5"
+    subfolder: "vae"
+  
+  text_encoder:
+    model_name: "runwayml/stable-diffusion-v1-5"
+    subfolder: "text_encoder"
+
+data:
+  dataset_type: "fruit"              # Use our fruit dataset
+  data_dir: "data/fruits"            # Your fruit data directory
+  image_size: 256                    # Optimal resolution for quality/speed
+  sketch_size: 256                   # Match image size
+  batch_size: 4                      # Adjust based on your GPU memory
+  max_sequence_length: 77
+  
+training:
+  max_train_steps: 10000             # Good for focused dataset
+  learning_rate: 1e-4                # Standard learning rate
+  batch_size: 4                      # Adjust based on your GPU memory
+  gradient_accumulation_steps: 2     # Effective batch size = 8
+  gradient_checkpointing: true
+  mixed_precision: "fp16"           # Memory efficient training
+  
+  # Optimizer settings
+  optimizer: "adamw"
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.01
+  epsilon: 1e-8
+  
+  # Learning rate schedule
+  lr_scheduler: "cosine"
+  num_warmup_steps: 500
+  
+  # Conditioning parameters
+  text_drop_prob: 0.1               # 10% text conditioning dropout for CFG
+  sketch_drop_prob: 0.1             # 10% sketch conditioning dropout
+  
+  # EMA
+  use_ema: true
+  ema_decay: 0.999
+
+diffusion:
+  num_train_timesteps: 1000
+  beta_schedule: "linear"
+  prediction_type: "epsilon"
+  clip_sample: false
+
+paths:
+  output_dir: "outputs/fruit_model"
+  logging_dir: "logs"
+  cache_dir: ".cache"
+
+logging:
+  project_name: "scribble-diffusion-fruits"
+  run_name: "6-fruits-256x256"
+  log_interval: 50
+  save_interval: 1000               # Save every 1000 steps
+  log_with: "tensorboard"
+
+validation:
+  validation_steps: 500
+  num_validation_images: 4
+  validation_prompts:
+    - "a red apple"
+    - "a yellow banana" 
+    - "a green lime"
+    - "a ripe orange"
+    - "a pink guava"
+    - "a pomegranate"

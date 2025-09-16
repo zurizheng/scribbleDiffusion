@@ -309,7 +309,7 @@ def main():
     result = pipeline.generate(
         prompt="a beautiful red apple on a wooden table",
         sketch_path=test_sketch_pil,
-        num_inference_steps=10,  # Quick for testing
+        num_inference_steps=2,  # Quick for testing
         seed=42
     )
     

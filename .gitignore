@@ -1,6 +1,7 @@
 # ScribbleDiffusion .gitignore
 
 scribble_diffusion_model
+data
 
 # Python
 __pycache__/
