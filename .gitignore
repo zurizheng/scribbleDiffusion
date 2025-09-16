@@ -1,5 +1,7 @@
 # ScribbleDiffusion .gitignore
 
+scribble_diffusion_model
+
 # Python
 __pycache__/
 *.py[cod]

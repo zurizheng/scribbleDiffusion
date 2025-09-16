@@ -2,6 +2,8 @@
 
 A lightweight latent diffusion model that turns rough sketches + text into full 256×256 images with live attention visualizations.
 
+**✅ Status: Working inference pipeline available in `scripts/fixed_inference.py`**
+
 ## Features
 
 - **Sketch + Text Conditioning**: Combines edge maps with text prompts for precise control
@@ -24,17 +26,25 @@ Text Prompt → CLIP Text Encoder → Cross-Attention ← U-Net (32x32x4 latents
 
 ```bash
 # Setup environment
-pip install -r requirements.txt
+./setup.sh
+
+# Run inference (working pipeline)
+python scripts/fixed_inference.py
+
+# Start web demo
+python app.py
 
 # Download pretrained components
 python scripts/download_models.py
 
 # Train on your dataset
-python train.py --config configs/base.yaml
+python scripts/train.py --config configs/base.yaml
 
 # Launch demo app
 python app.py
 ```
+
+📋 **See [USAGE.md](USAGE.md) for detailed usage instructions and cleaned project structure.**
 
 ## Project Structure
 

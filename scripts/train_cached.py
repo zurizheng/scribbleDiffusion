@@ -6,9 +6,15 @@ Uses pre-computed edge cache for fast training.
 import argparse
 import logging
 import os
+import sys
 import time
 import torch
 from pathlib import Path
+
+# Add the project root to Python path for imports
+project_root = Path(__file__).parent.parent.resolve()  # Go up one more level since we're in scripts/
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 from omegaconf import OmegaConf
 from accelerate import Accelerator
@@ -17,6 +23,9 @@ from accelerate.utils import set_seed
 from diffusers import AutoencoderKL, DDIMScheduler, UNet2DConditionModel
 from transformers import CLIPTextModel, CLIPTokenizer
 from tqdm.auto import tqdm
+
+# Import device utilities
+from src.utils.device_utils import clear_device_cache, get_device_memory_gb
 
 from src.models.sketch_encoder import SketchCrossAttentionEncoder, SketchTextCombiner  
 from src.training.losses import DiffusionLoss
@@ -243,8 +252,7 @@ def main():
                 del loss, model_pred, noise, latents, noisy_latents
                 del images, sketches, text_embeddings, sketch_embeddings, combined_embeddings
                 
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
+                clear_device_cache()
 
             # Timing
             step_end_time = time.time()
@@ -257,7 +265,7 @@ def main():
             
             # Update progress
             if accelerator.is_main_process:
-                memory_gb = torch.cuda.memory_allocated() / 1024**3 if torch.cuda.is_available() else 0
+                memory_gb = get_device_memory_gb()
                 
                 progress_bar.set_postfix({
                     'loss': f'{current_loss:.4f}',

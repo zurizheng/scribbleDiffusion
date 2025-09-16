@@ -1,6 +1,22 @@
 """
-Complete inference pipeline for ScribbleDiffusion.
-Handles end-to-end generation with attention tracking.
+Complete inference pipeline for Scribb        vae: AutoencoderKL,
+        text_encoder: CLIPTextModel,
+        tokenizer: CLIPTokenizer,
+        scheduler: DDIMScheduler,
+        device: Optional[str] = None,
+    ):
+        self.unet = unet
+        self.hint_encoder = hint_encoder
+        self.vae = vae
+        self.text_encoder = text_encoder
+        self.tokenizer = tokenizer
+        self.scheduler = scheduler
+        
+        # Use optimal device detection if not specified
+        if device is None:
+            self.device = get_optimal_device()
+        else:
+            self.device = torch.device(device)Handles end-to-end generation with attention tracking.
 """
 
 import torch
@@ -12,6 +28,9 @@ from dataclasses import dataclass
 
 from diffusers import DDIMScheduler, AutoencoderKL
 from transformers import CLIPTextModel, CLIPTokenizer
+
+# Import device utilities
+from ..utils.device_utils import get_optimal_device
 
 
 @dataclass

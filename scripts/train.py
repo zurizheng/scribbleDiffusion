@@ -12,12 +12,30 @@ from pathlib import Path
 from typing import Dict, Any
 
 # Add the project root to Python path for imports
-project_root = Path(__file__).parent.resolve()
+project_root = Path(__file__).parent.parent.resolve()  # Go up one more level since we're in scripts/
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 import torch
 import torch.nn.functional as F
+from pathlib import Path
+import numpy as np
+from PIL import Image
+import cv2
+from accelerate import Accelerator
+from diffusers import AutoencoderKL, DDIMScheduler
+from transformers import CLIPTokenizer, CLIPTextModel
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+import yaml
+from omegaconf import OmegaConf
+
+# Import our models and utilities
+from src.models.unet import SketchConditionedUNet
+from src.models.hint_encoder import HintEncoder  
+from src.data.dataset import SketchImageDataset
+from src.training.losses import DiffusionLoss
+from src.utils.device_utils import clear_device_cache, synchronize_device, set_memory_fraction, get_device_memory_gb
 from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import ProjectConfiguration
@@ -266,11 +284,9 @@ def main():
     logger.info("Starting training...")
     global_step = 0
     
-    # Set PyTorch memory management for better fragmentation handling
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        # Set memory fraction to prevent fragmentation
-        torch.cuda.set_per_process_memory_fraction(0.95)
+    # Set device memory management for better fragmentation handling
+    clear_device_cache()
+    set_memory_fraction(0.95)
     
     # Create progress bar for total steps
     if accelerator.is_main_process:
@@ -348,9 +364,9 @@ def main():
                 # Aggressive memory cleanup
                 del loss  # Delete loss tensor immediately
                 del model_pred, noise  # Delete intermediate tensors
-                if global_step % 10 == 0 and torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                    torch.cuda.synchronize()  # Ensure cleanup completes
+                if global_step % 10 == 0:
+                    clear_device_cache()
+                    synchronize_device()  # Ensure cleanup completes
             
             # Update EMA and global step
             if accelerator.sync_gradients:

@@ -11,16 +11,40 @@ import torch.nn as nn
 import torch.nn.functional as F
 from diffusers.models.attention_processor import Attention
 from diffusers.models.embeddings import TimestepEmbedding, Timesteps
-from diffusers.models.unet_2d_blocks import (
-    UNetMidBlock2D,
-    get_down_block,
-    get_up_block,
-    UNetMidBlock2DCrossAttn,
-    DownBlock2D,
-    CrossAttnDownBlock2D,
-    UpBlock2D,
-    CrossAttnUpBlock2D,
-)
+
+# Handle diffusers version compatibility for UNet blocks
+try:
+    # Try newer diffusers structure (0.21+)
+    from diffusers.models.unets.unet_2d_blocks import (
+        UNetMidBlock2D,
+        get_down_block,
+        get_up_block,
+        UNetMidBlock2DCrossAttn,
+        DownBlock2D,
+        CrossAttnDownBlock2D,
+        UpBlock2D,
+        CrossAttnUpBlock2D
+    )
+    DIFFUSERS_BLOCKS_AVAILABLE = True
+except ImportError:
+    try:
+        # Try intermediate structure
+        from diffusers.models.unet_2d_blocks import (
+            UNetMidBlock2D,
+            get_down_block,
+            get_up_block,
+            UNetMidBlock2DCrossAttn,
+            DownBlock2D,
+            CrossAttnDownBlock2D,
+            UpBlock2D,
+            CrossAttnUpBlock2D
+        )
+        DIFFUSERS_BLOCKS_AVAILABLE = True
+    except ImportError:
+        # Blocks not available - will use base UNet
+        DIFFUSERS_BLOCKS_AVAILABLE = False
+        print("⚠️ Diffusers blocks not available, falling back to base implementation")
+
 from diffusers.utils import logging
 
 logger = logging.get_logger(__name__)

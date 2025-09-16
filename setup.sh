@@ -39,15 +39,40 @@ pip install -r requirements.txt
 echo "⚙️  Setting up environment..."
 python scripts/download_models.py
 
-# Check if CUDA is available
-python -c "import torch; print('🚀 CUDA available:', torch.cuda.is_available())" 2>/dev/null || echo "⚠️  PyTorch not installed yet - run pip install -r requirements.txt"
+python scripts/download_models.py
+
+# Check device availability
+echo "🔍 Checking device availability..."
+python -c "
+import torch
+import sys
+sys.path.append('src')
+from utils.device_utils import get_device_info
+
+try:
+    info = get_device_info()
+    print(f'🚀 Device: {info[\"device\"]}')
+    print(f'📱 Device name: {info[\"device_name\"]}')
+    print(f'⚡ CUDA available: {info[\"cuda_available\"]}')
+    print(f'🍎 MPS available: {info[\"mps_available\"]}')
+    print(f'💻 GPU available: {info[\"gpu_available\"]}')
+except Exception as e:
+    print(f'⚠️  Could not check device info: {e}')
+    print('📝 Manual check:')
+    print(f'   CUDA: {torch.cuda.is_available()}')
+    if hasattr(torch.backends, \"mps\"):
+        print(f'   MPS: {torch.backends.mps.is_available()}')
+    else:
+        print('   MPS: Not supported (PyTorch < 1.12)')
+" 2>/dev/null || echo "⚠️  PyTorch not installed yet - run pip install -r requirements.txt"
 
 echo ""
 echo "🎉 Setup complete!"
 echo ""
 echo "Next steps:"
-echo "1. Train model: python train.py --config configs/fast.yaml"
-echo "2. Run demo: python app.py"
+echo "1. Train model: python scripts/train.py --config configs/fast.yaml"
+echo "2. Run inference: python scripts/fixed_inference.py"
+echo "3. Run demo: python app.py"
 echo "3. Open notebooks: jupyter lab notebooks/"
 echo ""
 echo "For custom datasets, see src/data/dataset.py"

@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Tuple
 from src.models.unet import SketchConditionedUNet
 from src.models.hint_encoder import HintEncoder
 from src.inference.pipeline import ScribbleDiffusionPipeline
+from src.utils.device_utils import get_optimal_device
 from src.utils.attention_viz import AttentionVisualizer
 
 
@@ -35,7 +36,7 @@ class ScribbleDiffusionDemo:
     
     def __init__(self, model_path: str):
         """Initialize demo with trained model."""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = get_optimal_device()
         self.pipeline = self.load_pipeline(model_path)
         self.attention_viz = AttentionVisualizer()
         
