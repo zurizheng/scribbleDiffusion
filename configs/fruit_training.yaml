@@ -24,7 +24,7 @@ model:
 
 data:
   dataset_type: "fruit"              # Use our fruit dataset
-  data_dir: "data/fruits"            # Your fruit data directory
+  data_dir: "my-fruit-dataset"       # Updated for HF download path
   image_size: 256                    # Optimal resolution for quality/speed
   sketch_size: 256                   # Match image size
   batch_size: 4                      # Adjust based on your GPU memory

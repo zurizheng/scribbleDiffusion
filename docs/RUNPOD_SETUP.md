@@ -2,11 +2,17 @@
 
 ## Quick Start Guide
 
-### 1. Upload Your Dataset
-Upload your `data/fruits` folder to RunPod. You can:
-- Zip the folder locally and upload via RunPod interface
-- Use `rsync` or `scp` to sync your data
-- Upload to cloud storage (Google Drive, S3) and download on RunPod
+### 1. Download Your Dataset from Hugging Face
+```bash
+# Download your uploaded fruit dataset
+huggingface-hub download zurizheng/my-fruit-dataset --repo-type=dataset --local-dir=my-fruit-dataset
+
+# Verify dataset structure
+ls my-fruit-dataset/
+# Should show: Apple_Good/ Banana_Good/ Guava_Good/ Lime_Good/ Orange_Good/ Pomegranate_Good/
+```
+
+**Note**: The training config is already updated to use `my-fruit-dataset` as the data directory.
 
 ### 2. RunPod Instance Setup
 Choose a pod with:
@@ -25,21 +31,19 @@ cd scribbleDiffusion
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip install diffusers transformers accelerate safetensors
 pip install opencv-python pillow numpy omegaconf
-pip install tensorboard
+pip install tensorboard huggingface_hub
 
-# Upload your fruit dataset to data/fruits/
-# Structure should be:
-# data/fruits/Apple_Good/
-# data/fruits/Banana_Good/
-# data/fruits/Guava_Good/
-# data/fruits/Lime_Good/
-# data/fruits/Orange_Good/
-# data/fruits/Pomegranate_Good/
+# Download your fruit dataset from Hugging Face
+huggingface-hub download zurizheng/my-fruit-dataset --repo-type=dataset --local-dir=my-fruit-dataset
+
+# Verify dataset structure
+ls my-fruit-dataset/
+# Should show: Apple_Good/ Banana_Good/ Guava_Good/ Lime_Good/ Orange_Good/ Pomegranate_Good/
 ```
 
 ### 4. Test Setup
 ```bash
-# Verify dataset loading
+# Verify dataset loading (should show 10,476 images after grayscale removal)
 python3 test_fruit_setup.py
 ```
 
