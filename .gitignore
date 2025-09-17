@@ -2,6 +2,8 @@
 
 scribble_diffusion_model
 data
+my-fruit-dataset-sketches
+sketch_comparison
 
 # Python
 __pycache__/

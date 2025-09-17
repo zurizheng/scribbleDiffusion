@@ -13,7 +13,7 @@ apt-get update -qq
 apt-get install -y -qq libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 libgtk-3-dev
 
 # Check if we're in the right directory
-if [ ! -f "train.py" ]; then
+if [ ! -f "scripts/train.py" ]; then
     echo "❌ Error: train.py not found. Please run this script from the ScribbleDiffusion directory."
     exit 1
 fi
@@ -42,8 +42,8 @@ echo "⬆️ Upgrading pip in virtual environment..."
 python -m pip install --upgrade pip
 
 # Install NumPy first with proper version to avoid conflicts
-echo "📦 Installing NumPy with compatible version..."
-python -m pip install numpy==1.24.3
+echo "📦 Installing NumPy with PyTorch-compatible version..."
+python -m pip install "numpy>=1.21.0,<2.0" --upgrade
 
 # Install PyTorch with CUDA support for RTX 3090
 echo "🔥 Installing stable PyTorch 2.0.1 with CUDA 11.7 (detected CUDA 11.7.1)..."
@@ -170,9 +170,13 @@ echo "📦 Installing additional dependencies..."
 echo "Skipping requirements.txt to avoid version conflicts..."
 # python -m pip install -r requirements.txt
 
+# Install missing diffusers dependency
+echo "Installing importlib-metadata for diffusers compatibility..."
+python -m pip install importlib-metadata
+
 # Install only essential additional packages manually
-echo "Installing OpenCV headless version..."
-python -m pip install opencv-python-headless  # Use headless version for RunPod
+echo "Installing OpenCV headless version (compatible with NumPy)..."
+python -m pip install "opencv-python-headless>=4.5.0,<4.9.0"  # Compatible with NumPy < 2.0
 python -m pip install tqdm omegaconf safetensors einops Pillow
 
 # Install COCO API tools

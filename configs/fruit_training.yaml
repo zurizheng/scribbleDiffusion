@@ -1,17 +1,15 @@
-# Configuration for training ScribbleDiffusion on fruit dataset
-# This config is optimized for your 11k fruit images
-
+# Memory-optimized fruit training config based on working RTX3090 cached config
 model:
   unet:
     in_channels: 4
     out_channels: 4
-    model_channels: 320
-    use_linear_projection: false  # Use conv projections for compatibility
+    model_channels: 320         # Use standard size like RTX3090 config
+    use_linear_projection: true # More memory efficient (like RTX3090 config)
   
   sketch_encoder:
     in_channels: 1
-    hidden_dim: 256
-    num_sketch_tokens: 77
+    hidden_dim: 256             # Keep reasonable size
+    num_sketch_tokens: 77       # Standard size
     cross_attention_dim: 768
   
   vae:
@@ -23,38 +21,31 @@ model:
     subfolder: "text_encoder"
 
 data:
-  dataset_type: "fruit"              # Use our fruit dataset
-  data_dir: "my-fruit-dataset"       # Updated for HF download path
-  image_size: 256                    # Optimal resolution for quality/speed
-  sketch_size: 256                   # Match image size
-  batch_size: 4                      # Adjust based on your GPU memory
+  dataset_type: "fruit"
+  data_dir: "my-fruit-dataset"
+  sketches_dir: "my-fruit-dataset-sketches"  # Use pre-computed sketches
+  image_size: 256               # Reasonable size (vs 512 in RTX3090)
+  sketch_size: 256
+  batch_size: 1                 # Match RTX3090 config
   max_sequence_length: 77
-  
+
 training:
-  max_train_steps: 10000             # Good for focused dataset
-  learning_rate: 1e-4                # Standard learning rate
-  batch_size: 4                      # Adjust based on your GPU memory
-  gradient_accumulation_steps: 2     # Effective batch size = 8
+  max_train_steps: 10000
+  learning_rate: 0.0001
+  batch_size: 1                 # Match RTX3090 config
+  gradient_accumulation_steps: 8 # Match RTX3090 config
   gradient_checkpointing: true
-  mixed_precision: "fp16"           # Memory efficient training
-  
-  # Optimizer settings
+  mixed_precision: "fp16"
   optimizer: "adamw"
   beta1: 0.9
   beta2: 0.999
   weight_decay: 0.01
-  epsilon: 1e-8
-  
-  # Learning rate schedule
+  epsilon: 1.0e-08
   lr_scheduler: "cosine"
   num_warmup_steps: 500
-  
-  # Conditioning parameters
-  text_drop_prob: 0.1               # 10% text conditioning dropout for CFG
-  sketch_drop_prob: 0.1             # 10% sketch conditioning dropout
-  
-  # EMA
-  use_ema: true
+  text_drop_prob: 0.1
+  sketch_drop_prob: 0.1
+  use_ema: false                # DISABLED like RTX3090 config - saves massive memory!
   ema_decay: 0.999
 
 diffusion:
@@ -64,24 +55,24 @@ diffusion:
   clip_sample: false
 
 paths:
-  output_dir: "outputs/fruit_model"
+  output_dir: "outputs/fruit_model_ultra_opt"
   logging_dir: "logs"
   cache_dir: ".cache"
 
 logging:
   project_name: "scribble-diffusion-fruits"
-  run_name: "6-fruits-256x256"
+  run_name: "6-fruits-256x256-ultra-opt"
   log_interval: 50
-  save_interval: 1000               # Save every 1000 steps
+  save_interval: 1000
   log_with: "tensorboard"
 
 validation:
   validation_steps: 500
-  num_validation_images: 4
+  num_validation_images: 2
   validation_prompts:
     - "a red apple"
-    - "a yellow banana" 
+    - "a yellow banana"
     - "a green lime"
     - "a ripe orange"
-    - "a pink guava"
+    - "a green guava"
     - "a pomegranate"

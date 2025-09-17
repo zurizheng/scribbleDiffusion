@@ -265,7 +265,8 @@ def main():
         train_dataset = FruitDataset(
             data_dir=config.data.data_dir,
             image_size=config.data.get("image_size", 256),
-            create_sketches=True
+            create_sketches=True,
+            sketches_dir=config.data.get("sketches_dir", None)  # Use pre-computed sketches if available
         )
         logger.info(f"✅ Loaded fruit dataset: {len(train_dataset)} images")
     else:
@@ -355,6 +356,7 @@ def main():
         # Initialize loss tracking
         recent_losses = []
         max_recent_losses = 100  # Track last 100 losses for smoothing
+        current_loss = 0.0  # Initialize to avoid UnboundLocalError
     
     for epoch in range(1000):  # Large number, we'll break based on max_train_steps
         for step, batch in enumerate(train_dataloader):
@@ -423,6 +425,10 @@ def main():
                 # Calculate loss
                 loss = loss_fn(model_pred, noise, timesteps)
                 
+                # Store loss value before deletion (for logging)
+                if accelerator.sync_gradients and accelerator.is_main_process:
+                    current_loss = loss.detach().cpu().item()  # Move to CPU immediately
+                
                 # Backward pass
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
@@ -447,9 +453,8 @@ def main():
                     ema_sketch_text_combiner.step(sketch_text_combiner.parameters())
                 global_step += 1
                 
-                # Update progress bar (detach and move to CPU to avoid GPU accumulation)
+                # Update progress bar (use stored loss value)
                 if accelerator.is_main_process:
-                    current_loss = loss.detach().cpu().item()  # Move to CPU immediately
                     recent_losses.append(current_loss)
                     if len(recent_losses) > max_recent_losses:
                         recent_losses.pop(0)

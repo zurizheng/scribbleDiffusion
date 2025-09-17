@@ -5,9 +5,10 @@ from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 import cv2
 import numpy as np
+from pathlib import Path
 
 class FruitDataset(Dataset):
-    def __init__(self, data_dir, transform=None, image_size=256, create_sketches=True):
+    def __init__(self, data_dir, transform=None, image_size=256, create_sketches=True, sketches_dir=None):
         """
         Dataset for fruit images with automatic fruit type detection from folder names
         
@@ -15,11 +16,13 @@ class FruitDataset(Dataset):
             data_dir: Path to fruit dataset directory (e.g., 'data/fruits')
             transform: Optional transform to apply to images
             image_size: Size to resize images to
-            create_sketches: Whether to generate sketch versions of images
+            create_sketches: Whether to generate sketch versions of images on-the-fly
+            sketches_dir: Path to pre-computed sketches directory (if None, uses on-the-fly generation)
         """
         self.data_dir = data_dir
         self.image_size = image_size
         self.create_sketches = create_sketches
+        self.sketches_dir = sketches_dir
         self.image_paths = []
         self.fruit_labels = []
         
@@ -109,10 +112,30 @@ class FruitDataset(Dataset):
         # Invert so lines are white on black background
         sketch = 255 - edges
         
-        # Convert back to PIL
-        sketch_pil = Image.fromarray(sketch).convert('RGB')
+        # Convert back to PIL as grayscale (1 channel) since sketch encoder expects 1 channel
+        sketch_pil = Image.fromarray(sketch).convert('L')  # 'L' mode for grayscale
         
         return sketch_pil
+    
+    def _load_precomputed_sketch(self, image_path):
+        """Load pre-computed sketch from sketches directory"""
+        # Convert image path to corresponding sketch path
+        image_path_obj = Path(image_path)
+        relative_path = image_path_obj.relative_to(self.data_dir)
+        
+        # Change extension to .png for sketch
+        sketch_filename = relative_path.stem + '.png'
+        sketch_path = Path(self.sketches_dir) / relative_path.parent / sketch_filename
+        
+        if not sketch_path.exists():
+            # Fallback to on-the-fly generation if sketch not found
+            print(f"Warning: Pre-computed sketch not found at {sketch_path}, generating on-the-fly")
+            image = Image.open(image_path).convert('RGB')
+            return self._create_sketch(image)
+        
+        # Load pre-computed sketch
+        sketch = Image.open(sketch_path).convert('L')
+        return sketch
     
     def __len__(self):
         return len(self.image_paths)
@@ -126,9 +149,15 @@ class FruitDataset(Dataset):
             # Load and process original image
             image = Image.open(image_path).convert('RGB')
             
-            # Create sketch if requested
+            # Handle sketch loading
             if self.create_sketches:
-                sketch = self._create_sketch(image)
+                if self.sketches_dir:
+                    # Load pre-computed sketch
+                    sketch = self._load_precomputed_sketch(image_path)
+                else:
+                    # Create sketch on-the-fly (memory intensive)
+                    sketch = self._create_sketch(image)
+                    
                 sketch_tensor = self.sketch_transform(sketch)
             else:
                 sketch_tensor = None
