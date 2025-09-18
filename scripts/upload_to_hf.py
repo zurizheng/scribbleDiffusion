@@ -25,7 +25,7 @@ def upload_to_hf(model_path, repo_name, private=False, token=None):
         print(f"❌ Model path not found: {model_path}")
         return False
     
-    # Initialize HF API
+    # Initialize HF API (token=None lets it auto-detect from huggingface-cli login)
     api = HfApi(token=token)
     
     # Create repository if it doesn't exist
@@ -38,8 +38,9 @@ def upload_to_hf(model_path, repo_name, private=False, token=None):
         create_repo(
             repo_id=repo_name,
             private=private,
-            token=token,
-            repo_type="model"
+            token=token,  # This will also use auto-detection if token is None
+            repo_type="model",
+            exist_ok=True
         )
         print(f"✅ Repository created")
     
@@ -88,15 +89,9 @@ def main():
     
     args = parser.parse_args()
     
-    # Get token from args or environment
+    # Get token from args or environment, or let HF Hub auto-detect
     token = args.token or os.getenv("HF_TOKEN")
-    if not token:
-        print("❌ No HuggingFace token provided.")
-        print("💡 Either:")
-        print("   1. Run: huggingface-cli login")
-        print("   2. Set HF_TOKEN environment variable")
-        print("   3. Use --token argument")
-        sys.exit(1)
+    # Note: If no explicit token, HfApi() will auto-detect from huggingface-cli login
     
     success = upload_to_hf(args.model_path, args.repo_name, args.private, token)
     

@@ -122,6 +122,11 @@ def parse_args():
         default=None,
         help="Override output directory from config",
     )
+    parser.add_argument(
+        "--save_accelerator",
+        action="store_true",
+        help="Save accelerator state (optimizer, scheduler) for resuming training. Default: False to save space.",
+    )
     return parser.parse_args()
 
 
@@ -338,6 +343,11 @@ def main():
     
     # Training loop
     logger.info("Starting training...")
+    if args.save_accelerator:
+        logger.info("💾 Accelerator states will be saved (large files ~10GB each)")
+    else:
+        logger.info("⚡ Accelerator states will NOT be saved (space-efficient mode)")
+        logger.info("   Use --save_accelerator flag if you need to resume training")
     global_step = 0
     
     # Set device memory management for better fragmentation handling
@@ -472,7 +482,6 @@ def main():
             
             # Logging (only on gradient sync steps to avoid spam)
             if accelerator.sync_gradients and global_step % config.logging.log_interval == 0:
-                current_loss = loss.detach().cpu().item()  # Move to CPU immediately
                 logs = {
                     "train_loss": current_loss,
                     "lr": lr_scheduler.get_last_lr()[0],
@@ -516,9 +525,12 @@ def main():
                         config.paths.output_dir, global_step, accelerator
                     )
                     
-                    # Also save accelerator state for resuming
-                    accelerator_save_path = Path(config.paths.output_dir) / f"accelerator-{global_step}"
-                    accelerator.save_state(accelerator_save_path)
+                    # Optionally save accelerator state for resuming (uses lots of space)
+                    if args.save_accelerator:
+                        accelerator_save_path = Path(config.paths.output_dir) / f"accelerator-{global_step}"
+                        accelerator.save_state(accelerator_save_path)
+                        logger.info(f" Saved accelerator state to: {accelerator_save_path}")
+                    # Note: accelerator state skipped to save space (use --save_accelerator to enable)
             
             # Check if we've reached max steps
             if global_step >= config.training.max_train_steps:
@@ -540,13 +552,17 @@ def main():
             config.paths.output_dir, global_step, accelerator
         )
         
-        # Also save final accelerator state
-        final_accelerator_path = Path(config.paths.output_dir) / "final_accelerator"
-        accelerator.save_state(final_accelerator_path)
+        # Optionally save final accelerator state (uses lots of space)
+        if args.save_accelerator:
+            final_accelerator_path = Path(config.paths.output_dir) / "final_accelerator"
+            accelerator.save_state(final_accelerator_path)
+            logger.info(f" Saved final accelerator state to: {final_accelerator_path}")
+        else:
+            logger.info(f" Skipped final accelerator state (use --save_accelerator to enable)")
         
-        logger.info(f"🎉 Training completed!")
-        logger.info(f"📁 Final model saved to: {final_save_path}")
-        logger.info(f"📁 All components saved: UNet, SketchEncoder, SketchTextCombiner")
+        logger.info(f" Training completed!")
+        logger.info(f" Final model saved to: {final_save_path}")
+        logger.info(f" All components saved: UNet, SketchEncoder, SketchTextCombiner")
     
     accelerator.end_training()
 

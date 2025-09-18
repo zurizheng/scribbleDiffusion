@@ -30,7 +30,7 @@ data:
   max_sequence_length: 77
 
 training:
-  max_train_steps: 10000
+  max_train_steps: 5000
   learning_rate: 0.0001
   batch_size: 1                 # Match RTX3090 config
   gradient_accumulation_steps: 8 # Match RTX3090 config
