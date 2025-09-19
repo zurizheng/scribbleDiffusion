@@ -56,9 +56,27 @@ class ScribbleDiffusionApp:
         if sketch_img is None:
             return None
         
+        # Handle Gradio Sketchpad output (which can be a dict with image data)
+        if isinstance(sketch_img, dict):
+            # Gradio Sketchpad returns dict with 'image' or 'composite' key
+            if 'composite' in sketch_img:
+                sketch_img = sketch_img['composite']
+            elif 'image' in sketch_img:
+                sketch_img = sketch_img['image']
+            else:
+                # If it's a dict but no expected keys, return None
+                return None
+        
         # Convert to PIL if needed
         if isinstance(sketch_img, np.ndarray):
             sketch_img = Image.fromarray(sketch_img)
+        elif isinstance(sketch_img, str):
+            # If it's a file path, load it
+            sketch_img = Image.open(sketch_img)
+        
+        # Ensure we have a PIL Image now
+        if not isinstance(sketch_img, Image.Image):
+            return None
         
         # Convert to grayscale
         sketch_gray = sketch_img.convert("L")
@@ -167,8 +185,7 @@ class ScribbleDiffusionApp:
                     sketch_input = gr.Sketchpad(
                         label="Draw here",
                         height=512,
-                        width=512,
-                        canvas_size=(512, 512)
+                        width=512
                     )
                     
                     clear_btn = gr.Button("🗑️ Clear Sketch", variant="secondary")

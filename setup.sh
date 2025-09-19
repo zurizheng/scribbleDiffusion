@@ -165,19 +165,14 @@ python -m pip install datasets==2.13.1 || echo "❌ Datasets installation failed
 echo "📋 Checking installed ML packages..."
 python -m pip list | grep -E "(accelerate|transformers|diffusers|datasets)" || echo "No ML packages found"
 
-# Install additional dependencies (skip requirements.txt for now to avoid conflicts)
-echo "📦 Installing additional dependencies..."
-echo "Skipping requirements.txt to avoid version conflicts..."
-# python -m pip install -r requirements.txt
+# Install additional dependencies from requirements.txt (now with compatible versions)
+echo "📦 Installing additional dependencies from requirements.txt..."
+echo "Using requirements.txt with compatible versions..."
+python -m pip install -r requirements.txt
 
-# Install missing diffusers dependency
+# Install missing diffusers dependency (if not in requirements.txt)
 echo "Installing importlib-metadata for diffusers compatibility..."
 python -m pip install importlib-metadata
-
-# Install only essential additional packages manually
-echo "Installing OpenCV headless version (compatible with NumPy)..."
-python -m pip install "opencv-python-headless>=4.5.0,<4.9.0"  # Compatible with NumPy < 2.0
-python -m pip install tqdm omegaconf safetensors einops Pillow
 
 # Install COCO API tools
 echo "Installing pycocotools for COCO dataset support..."

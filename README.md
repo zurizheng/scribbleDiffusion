@@ -2,7 +2,7 @@
 
 A lightweight latent diffusion model that turns rough sketches + text into full 256×256 images with live attention visualizations.
 
-**✅ Status: Working inference pipeline available in `scripts/fixed_inference.py`**
+**✅ Status: Working inference pipeline available in `scripts/web_visualizer.py`**
 
 ## Features
 
@@ -24,10 +24,30 @@ Text Prompt → CLIP Text Encoder → Cross-Attention ← U-Net (32x32x4 latents
 
 ## Quick Start
 
+### Try It Out (Web Interface)
+
+If you want to try ScribbleDiffusion interactively, there's a Gradio web interface where you can draw sketches and generate images:
+
 ```bash
 # Setup environment
 ./setup.sh
 
+# Download pretrained model
+hf download zurizheng/scribble-diffusion-fruit --local-dir=scribble-diffusion-model
+
+# Launch interactive web interface
+python scripts/web_visualizer.py
+```
+
+The web interface will start on `http://localhost:7860` where you can:
+- Draw sketches directly in your browser
+- Enter text prompts
+- Generate images from your sketches
+- View a gallery of generated images
+
+### Command Line Usage
+
+```bash
 # Run inference (working pipeline)
 python scripts/fixed_inference.py
 
@@ -39,12 +59,6 @@ python scripts/download_models.py
 
 # Train on your dataset
 python scripts/train.py --config configs/base.yaml
-
-# Download already trained model
-hf download zurizheng/scribble-diffusion-fruit --local-dir=scribble-diffusion-model
-
-# Launch demo app
-python app.py
 ```
 
 📋 **See [USAGE.md](USAGE.md) for detailed usage instructions and cleaned project structure.**
