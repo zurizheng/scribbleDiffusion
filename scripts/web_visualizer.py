@@ -15,10 +15,14 @@ from PIL import Image, ImageDraw
 import cv2
 import time
 import threading
+import os
 from pathlib import Path
 
 # Import our pipeline
 from scripts.fixed_inference import FixedScribblePipeline
+
+# Import enhanced attention visualization
+from src.utils.attention_viz import AttentionVisualizer
 
 class ScribbleDiffusionApp:
     def __init__(self):
@@ -26,6 +30,10 @@ class ScribbleDiffusionApp:
         self.pipeline_loading = False
         self.gallery_dir = Path("gallery")
         self.gallery_dir.mkdir(exist_ok=True)
+        
+        # Initialize pipeline and attention visualizer
+        self.pipeline = FixedScribblePipeline()
+        self.enhanced_attention_viz = AttentionVisualizer(gallery_root='gallery')
         
         # Load pipeline in background
         self.load_pipeline_async()
@@ -106,22 +114,22 @@ class ScribbleDiffusionApp:
         image.save(filepath)
         return str(filepath)
     
-    def generate_image(self, sketch, prompt, steps, guidance_scale, seed, progress=gr.Progress()):
-        """Generate image from sketch and prompt"""
+    def generate_image(self, sketch, prompt, steps, guidance_scale, seed, show_heatmaps=True, progress=gr.Progress()):
+        """Generate image from sketch and prompt with enhanced attention analysis"""
         
         # Check if pipeline is ready
         if self.pipeline is None:
             if self.pipeline_loading:
-                return None, "🔄 Pipeline is still loading... Please wait and try again."
+                return None, None, None, "🔄 Pipeline is still loading... Please wait and try again."
             else:
-                return None, "❌ Pipeline failed to load. Please check the console for errors."
+                return None, None, None, "❌ Pipeline failed to load. Please check the console for errors."
         
         # Validate inputs
         if sketch is None:
-            return None, "⚠️ Please draw a sketch first!"
+            return None, None, None, "⚠️ Please draw a sketch first!"
         
         if not prompt.strip():
-            return None, "⚠️ Please enter a prompt!"
+            return None, None, None, "⚠️ Please enter a prompt!"
         
         try:
             progress(0.1, desc="Processing sketch...")
@@ -129,33 +137,99 @@ class ScribbleDiffusionApp:
             # Process the sketch
             processed_sketch = self.preprocess_sketch(sketch)
             if processed_sketch is None:
-                return None, "⚠️ No drawing detected. Please draw something on the canvas!"
+                return None, None, None, "⚠️ No drawing detected. Please draw something on the canvas!"
             
             progress(0.2, desc="Starting generation...")
             
             # Set seed
             actual_seed = None if seed == -1 else seed
             
-            # Generate image
+            # Generate image with attention maps if requested
             result = self.pipeline.generate(
                 prompt=prompt,
                 sketch_path=processed_sketch,
                 num_inference_steps=steps,
                 guidance_scale=guidance_scale,
-                seed=actual_seed
+                seed=actual_seed,
+                return_attention_maps=show_heatmaps
             )
+            
+            progress(0.7, desc="Creating attention analysis...")
+            
+            # Create enhanced attention analysis if requested
+            attention_heatmap = None
+            evolution_gif = None
+            
+            if show_heatmaps and hasattr(result, 'attention_maps') and result.attention_maps:
+                try:
+                    # Create organized folder for this generation
+                    folder_path = self.enhanced_attention_viz.create_prompt_folder(prompt)
+                    
+                    # Create comprehensive attention analysis
+                    analysis = self.enhanced_attention_viz.create_comprehensive_attention_analysis(
+                        prompt, processed_sketch, result, folder_path
+                    )
+                    
+                    # Return the evolution GIF and comparison chart
+                    if 'evolution_gif' in analysis and os.path.exists(analysis['evolution_gif']):
+                        evolution_gif = analysis['evolution_gif']
+                    
+                    if 'text_vs_sketch' in analysis and os.path.exists(analysis['text_vs_sketch']):
+                        attention_heatmap = analysis['text_vs_sketch']
+                    
+                    print(f"✅ Enhanced attention analysis saved to: {os.path.basename(folder_path)}")
+                    
+                except Exception as e:
+                    print(f"Warning: Could not create enhanced attention analysis: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    attention_heatmap = self.create_placeholder_heatmap()
+            elif show_heatmaps:
+                attention_heatmap = self.create_placeholder_heatmap()
             
             progress(0.9, desc="Saving to gallery...")
             
-            # Auto-save to gallery
-            gallery_path = self.auto_save_to_gallery(result, prompt)
+            # Auto-save main image to gallery
+            main_image = result.image if hasattr(result, 'image') else result
+            gallery_path = self.auto_save_to_gallery(main_image, prompt)
             
             progress(1.0, desc="Complete!")
             
-            return result, f"✅ Generated successfully! Saved to: {gallery_path}"
+            # Return main image, static heatmap, evolution gif, and status
+            success_msg = f"✅ Generated successfully! Saved to: {gallery_path}"
+            if evolution_gif:
+                success_msg += f"\n🎬 Attention evolution analysis available in gallery!"
+            
+            return main_image, attention_heatmap, evolution_gif, success_msg
             
         except Exception as e:
-            return None, f"❌ Generation failed: {str(e)}"
+            import traceback
+            traceback.print_exc()
+            return None, None, None, f"❌ Generation failed: {str(e)}"
+    
+    def create_placeholder_heatmap(self):
+        """Create a placeholder heatmap when attention maps are not available"""
+        # Create a simple placeholder image
+        placeholder = Image.new('RGB', (512, 512), color=(240, 240, 240))
+        draw = ImageDraw.Draw(placeholder)
+        
+        # Add text
+        text_lines = [
+            "Attention Heatmap",
+            "",
+            "Heatmaps show where the model",
+            "focuses when processing your",
+            "text prompt and sketch.",
+            "",
+            "Red areas = high attention",
+            "Blue areas = low attention"
+        ]
+        
+        y_start = 200
+        for i, line in enumerate(text_lines):
+            draw.text((50, y_start + i * 25), line, fill=(100, 100, 100))
+        
+        return placeholder
     
     def load_gallery_images(self):
         """Load images from gallery for display"""
@@ -171,10 +245,10 @@ class ScribbleDiffusionApp:
     def create_interface(self):
         """Create the Gradio interface"""
         
-        with gr.Blocks(title="🎨 ScribbleDiffusion Visualizer", theme=gr.themes.Soft()) as app:
+        with gr.Blocks(title="ScribbleDiffusion Visualizer", theme=gr.themes.Soft()) as app:
             
             gr.Markdown("""
-            # 🎨 ScribbleDiffusion Visualizer
+            # ScribbleDiffusion Visualizer
             
             Draw a sketch and enter a prompt to generate amazing images! The AI will use your sketch as a guide to create the image.
             """)
@@ -206,6 +280,32 @@ class ScribbleDiffusionApp:
                         interactive=False,
                         lines=2
                     )
+                
+                with gr.Column(scale=1):
+                    gr.Markdown("### 🔥 Attention Analysis")
+                    attention_image = gr.Image(
+                        label="Text vs Sketch Attention",
+                        height=400,
+                        width=512,
+                        type="pil",
+                        value=None
+                    )
+                    
+                    evolution_gif = gr.Image(
+                        label="🎬 Denoising Evolution",
+                        height=300,
+                        width=512,
+                        type="pil",
+                        value=None
+                    )
+                    
+                    gr.Markdown("""
+                    **Attention Analysis:**
+                    - � **Top image**: Text vs Sketch token attention
+                    - 🎬 **Bottom image**: Evolution during denoising (noise level → clean)
+                    - � Red areas: High attention (model focuses here)
+                    - Shows which sketch features drive generation
+                    """)
             
             with gr.Row():
                 with gr.Column():
@@ -243,6 +343,13 @@ class ScribbleDiffusionApp:
                         value=-1,
                         precision=0
                     )
+                
+                with gr.Row():
+                    show_heatmaps = gr.Checkbox(
+                        label="🔥 Show Attention Heatmaps",
+                        value=True,
+                        info="Generate visualization showing where the model focuses attention"
+                    )
             
             # Gallery section
             with gr.Accordion("🖼️ Gallery", open=False):
@@ -270,9 +377,10 @@ class ScribbleDiffusionApp:
                     prompt_input,
                     steps_slider,
                     guidance_slider,
-                    seed_input
+                    seed_input,
+                    show_heatmaps
                 ],
-                outputs=[output_image, status_text]
+                outputs=[output_image, attention_image, evolution_gif, status_text]
             )
             
             # Auto-refresh gallery on page load
