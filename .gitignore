@@ -1,11 +1,12 @@
 # ScribbleDiffusion .gitignore
 
-scribble_diffusion_model
+scribble-diffusion-model
 data
 my-fruit-dataset-sketches
 sketch_comparison
 my-fruit-dataset
-src/models/__pycache__
+src/models/__pycache__/
+
 
 # Python
 __pycache__/

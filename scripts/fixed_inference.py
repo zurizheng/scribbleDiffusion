@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Fixed ScribbleDiffusion inference that works without the missing SketchTextCombiner
-Since the combiner just did concatenation, we can implement this directly
+Fixed ScribbleDiffusion inference that loads all trained components from scribble-diffusion-model
 """
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+# Add project root to Python path
+project_root = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, project_root)
 
 import torch
 import torch.nn.functional as F
@@ -16,20 +17,21 @@ from PIL import Image
 from pathlib import Path
 from safetensors.torch import load_file
 from tqdm import tqdm
+import json
 
 # Use diffusers for base components
 from diffusers import AutoencoderKL, DDIMScheduler, UNet2DConditionModel
 from transformers import CLIPTokenizer, CLIPTextModel
 
 # Import our custom models
-from models.sketch_encoder import SketchCrossAttentionEncoder
-from utils.device_utils import get_optimal_device
+from src.models.sketch_encoder import SketchCrossAttentionEncoder, SketchTextCombiner
+from src.utils.device_utils import get_optimal_device
 
 class FixedScribblePipeline:
-    def __init__(self, model_path="scribble_diffusion_model", force_cpu=True):
-        """Fixed pipeline that works without SketchTextCombiner"""
+    def __init__(self, model_path="scribble-diffusion-model", force_cpu=False):
+        """Fixed pipeline that loads all trained components from scribble-diffusion-model"""
         
-        print("🚀 Loading ScribbleDiffusion (Fixed - no combiner needed)...")
+        print("🚀 Loading ScribbleDiffusion...")
         
         # Use optimal device detection
         if force_cpu:
@@ -41,6 +43,9 @@ class FixedScribblePipeline:
             
         print(f"📱 Using device: {self.device}")
         print(f"🔢 Using dtype: {self.dtype}")
+        
+        # Load config from model directory
+        self.config = self._load_config(model_path)
         
         # Load base components
         print("📦 Loading base components...")
@@ -65,85 +70,127 @@ class FixedScribblePipeline:
             "runwayml/stable-diffusion-v1-5", subfolder="scheduler"
         )
         
-        # Load custom UNet
-        print("⚡ Loading custom UNet...")
+        # Load custom components
+        print("⚡ Loading trained models (custom UNet, sketch_encoder, and text_combiner)...")
         self.unet = self._load_custom_unet(model_path)
-        
-        # Load sketch encoder  
-        print("🎨 Loading sketch encoder...")
         self.sketch_encoder = self._load_sketch_encoder(model_path)
+        self.sketch_text_combiner = self._load_sketch_text_combiner(model_path)
         
         # Set to eval mode
         self.text_encoder.eval()
         self.vae.eval()
         self.unet.eval()
         self.sketch_encoder.eval()
+        if self.sketch_text_combiner:
+            self.sketch_text_combiner.eval()
         
         print("✅ Pipeline ready!")
     
+    def _load_config(self, model_path):
+        """Load model configuration"""
+        config_path = os.path.join(model_path, "config.json")
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            print(f"Loaded config from {config_path}")
+            return config
+        print("No config found, using defaults")
+        return {}
+    
     def _load_custom_unet(self, model_path):
-        """Load UNet with correct architecture"""
+        """Load UNet with trained weights"""
         
-        # Create UNet with correct architecture (use_linear_projection=False for conv weights)
-        unet = UNet2DConditionModel.from_pretrained(
-            "runwayml/stable-diffusion-v1-5", 
-            subfolder="unet",
-            torch_dtype=self.dtype,
-            use_linear_projection=False,  # Match trained architecture
-            low_cpu_mem_usage=False,
-            ignore_mismatched_sizes=True
+        # Get UNet config from our config
+        unet_config = self.config.get('architecture', {}).get('unet', {})
+        
+        # Create UNet with architecture from config
+        unet = UNet2DConditionModel(
+            in_channels=unet_config.get('in_channels', 4),
+            out_channels=unet_config.get('out_channels', 4),
+            down_block_types=unet_config.get('down_block_types', ["CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "CrossAttnDownBlock2D", "DownBlock2D"]),
+            up_block_types=unet_config.get('up_block_types', ["UpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D", "CrossAttnUpBlock2D"]),
+            block_out_channels=unet_config.get('block_out_channels', [320, 640, 1280, 1280]),
+            layers_per_block=unet_config.get('layers_per_block', 2),
+            attention_head_dim=unet_config.get('attention_head_dim', 8),
+            norm_num_groups=unet_config.get('norm_num_groups', 32),
+            cross_attention_dim=unet_config.get('cross_attention_dim', 768),
         ).to(self.device)
         
-        # Load the trained weights (converted format)
-        try:
-            unet_weights_path = f"{model_path}/unet_conv_format.safetensors"
-            if os.path.exists(unet_weights_path):
-                unet_weights = load_file(unet_weights_path)
-                print("📦 Using converted conv format weights")
-            else:
-                unet_weights_path = f"{model_path}/unet.safetensors"
-                unet_weights = load_file(unet_weights_path)
-                print("📦 Using original weights")
-            
-            # Convert weights to correct dtype
-            unet_weights = {k: v.to(self.dtype) for k, v in unet_weights.items()}
-            
-            # Load weights
-            missing_keys, unexpected_keys = unet.load_state_dict(unet_weights, strict=False)
-            
-            if not missing_keys and not unexpected_keys:
-                print("✅ UNet weights loaded perfectly")
-            else:
-                print(f"⚠️ UNet loaded with {len(missing_keys)} missing, {len(unexpected_keys)} extra keys")
-            
-        except Exception as e:
-            print(f"❌ Failed to load UNet weights: {e}")
-            print("   Using base SD weights instead")
+        # Load the trained weights
+        unet_path = os.path.join(model_path, "unet.safetensors")
+        if os.path.exists(unet_path):
+            try:
+                unet_weights = load_file(unet_path)
+                unet_weights = {k: v.to(self.dtype) for k, v in unet_weights.items()}
+                
+                missing_keys, unexpected_keys = unet.load_state_dict(unet_weights, strict=False)
+                
+                if not missing_keys and not unexpected_keys:
+                    print("UNet weights loaded perfectly")
+                else:
+                    print(f"UNet loaded with {len(missing_keys)} missing, {len(unexpected_keys)} extra keys")
+                        
+            except Exception as e:
+                print(f"Failed to load UNet weights: {e}")
+                print("   Using base SD weights instead")
+        else:
+            print(f"UNet weights not found at {unet_path}, using base SD weights")
         
         return unet
     
     def _load_sketch_encoder(self, model_path):
-        """Load sketch encoder"""
+        """Load sketch encoder with trained weights"""
         
-        # Create sketch encoder with same config as training
+        # Get sketch encoder config
+        sketch_config = self.config.get('architecture', {}).get('sketch_encoder', {})
+        
         sketch_encoder = SketchCrossAttentionEncoder(
-            in_channels=1,
-            hidden_dim=512,
-            num_sketch_tokens=77,  # Match text token length
-            cross_attention_dim=768
-        ).to(self.device).to(self.dtype)
+            in_channels=sketch_config.get('in_channels', 1),
+            hidden_dim=sketch_config.get('hidden_dim', 256),
+            num_sketch_tokens=sketch_config.get('num_sketch_tokens', 77),
+            cross_attention_dim=sketch_config.get('cross_attention_dim', 768)
+        ).to(self.device)
         
-        # Load weights
-        try:
-            sketch_weights = load_file(f"{model_path}/sketch_encoder.safetensors")
-            sketch_weights = {k: v.to(self.dtype) for k, v in sketch_weights.items()}
-            sketch_encoder.load_state_dict(sketch_weights)
-            print("✅ Sketch encoder weights loaded")
-        except Exception as e:
-            print(f"❌ Failed to load sketch encoder: {e}")
-            print("   Will use random initialization")
+        # Load trained weights
+        sketch_path = os.path.join(model_path, "sketch_encoder.safetensors")
+        if os.path.exists(sketch_path):
+            try:
+                sketch_weights = load_file(sketch_path)
+                sketch_weights = {k: v.to(self.dtype) for k, v in sketch_weights.items()}
+                sketch_encoder.load_state_dict(sketch_weights)
+                print("Sketch encoder weights loaded")
+            except Exception as e:
+                print(f"Failed to load sketch encoder: {e}")
+        else:
+            print(f"Sketch encoder weights not found at {sketch_path}")
         
         return sketch_encoder
+    
+    def _load_sketch_text_combiner(self, model_path):
+        """Load sketch text combiner"""
+        
+        combiner_path = os.path.join(model_path, "sketch_text_combiner.safetensors")
+        if not os.path.exists(combiner_path):
+            print(f"SketchTextCombiner not found at {combiner_path}")
+            print("   Will use simple concatenation instead")
+            return None
+        
+        # Get combiner config
+        combiner_config = self.config.get('architecture', {}).get('sketch_text_combiner', {})
+        
+        sketch_text_combiner = SketchTextCombiner(
+            cross_attention_dim=combiner_config.get('cross_attention_dim', 768)
+        ).to(self.device)
+        
+        try:
+            combiner_weights = load_file(combiner_path)
+            combiner_weights = {k: v.to(self.dtype) for k, v in combiner_weights.items()}
+            sketch_text_combiner.load_state_dict(combiner_weights)
+            print("SketchTextCombiner weights loaded")
+            return sketch_text_combiner
+        except Exception as e:
+            print(f"Failed to load SketchTextCombiner: {e}")
+            return None
     
     def encode_prompt(self, prompt):
         """Encode text prompt to embeddings"""
@@ -295,7 +342,7 @@ class FixedScribblePipeline:
 def main():
     """Test the fixed pipeline"""
     
-    pipeline = FixedScribblePipeline(force_cpu=True)
+    pipeline = FixedScribblePipeline(force_cpu=False)
     
     # Create test sketch
     test_sketch = np.zeros((512, 512), dtype=np.uint8)
@@ -307,9 +354,9 @@ def main():
     
     # Generate with sketch conditioning
     result = pipeline.generate(
-        prompt="a beautiful red apple on a wooden table",
+        prompt="red apple",
         sketch_path=test_sketch_pil,
-        num_inference_steps=2,  # Quick for testing
+        num_inference_steps=1,  # Minimal for memory test
         seed=42
     )
     
