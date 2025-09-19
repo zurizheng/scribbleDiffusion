@@ -251,8 +251,8 @@ class FixedScribblePipeline:
         sketch_path,
         num_inference_steps=20,
         guidance_scale=7.5,
-        height=512,
-        width=512,
+        height=256,
+        width=256,
         seed=None
     ):
         """Generate image from prompt and sketch"""
@@ -345,9 +345,8 @@ def main():
     pipeline = FixedScribblePipeline(force_cpu=False)
     
     # Create test sketch
-    test_sketch = np.zeros((512, 512), dtype=np.uint8)
-    cv2.circle(test_sketch, (256, 256), 100, 255, 3)
-    cv2.rectangle(test_sketch, (200, 350), (312, 400), 255, 2)
+    test_sketch = np.zeros((256, 256), dtype=np.uint8)
+    cv2.circle(test_sketch, (128, 128), 50, 255, 3)
     test_sketch_pil = Image.fromarray(test_sketch)
     
     print("\n🧪 Running fixed ScribbleDiffusion test...")

@@ -40,6 +40,9 @@ python scripts/download_models.py
 # Train on your dataset
 python scripts/train.py --config configs/base.yaml
 
+# Download already trained model
+hf download zurizheng/scribble-diffusion-fruit --local-dir=scribble-diffusion-model
+
 # Launch demo app
 python app.py
 ```
